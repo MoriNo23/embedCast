@@ -1,165 +1,134 @@
-# EmbedCast Project - AI Assistant Guide
+# EmbedCast - AI Assistant Guide
 
-> **Purpose:** This document helps AI assistants understand the EmbedCast project structure, rules, and constraints. Read this before making any changes.
+> **Purpose:** Project context and rules for AI coding assistants.
+> **Update:** When adding dependencies or changing protocols.
 
-## 1. Project Overview
+## Project Overview
 
-**EmbedCast** is an Android TV application for video casting and playback. It allows users to:
-- Cast videos from a Linux host to an Android TV device
-- Control playback remotely via WebSocket
-- Manage video quality and subtitles
-- Resume playback from saved positions
+**EmbedCast** - Android TV app for video casting with remote control via WebSocket.
 
-**Core Technology Stack:**
-- Android TV (Leanback, Kotlin)
-- WebSocket for remote control
-- JWPlayer for video playback
-- Linux CLI/Web GUI for host control
+| Component | Technology | Criticality |
+|-----------|------------|-------------|
+| Android TV | Kotlin, Leanback | 🔴 Core |
+| Host Control | .NET 10.0, C# | 🔴 Core |
+| Communication | WebSocket (port 8080) | 🔴 Critical |
 
-## 2. Architecture
+## Architecture
 
 ```
-┌─────────────────┐     WebSocket (8080)     ┌─────────────────┐
-│                 │◄────────────────────────►│                 │
-│   Linux Host    │                          │   Android TV    │
-│   (embedCast-   │                          │   (embedCast-   │
-│    host)        │                          │    tv)          │
-└─────────────────┘                          └─────────────────┘
+Linux Host ←→ WebSocket (8080) ←→ Android TV
+   CLI/Web GUI                       JWPlayer
 ```
 
-**Communication Protocol:**
-- **Port:** 8080 (WebSocket)
-- **Actions:** load, play, pause, stop, seek, quality, reload
-- **Format:** JSON messages
+## Critical Files
 
-## 3. Project Structure
+| File | Purpose | DO NOT MODIFY |
+|------|---------|----------------|
+| `embedCast-tv/app/.../MainActivity.kt` | Core activity | Without approval |
+| `embedCast-tv/app/.../WebSocketManager.kt` | WebSocket server | - |
+| `embedCast-sdk/` | Local SDK | ❌ Never |
 
-```
-embedCast Project/
-├── .sisyphus/                          # Project management & plans
-├── docs/                               # Documentation & session logs
-├── embedCast-tv/                       # Android TV application
-│   ├── app/
-│   │   ├── build.gradle.kts            # Build configuration
-│   │   └── src/main/
-│   │       ├── java/com/tvremote/control/
-│   │       │   ├── MainActivity.kt     # Main activity (454 lines)
-│   │       │   ├── SplashActivity.kt   # Animated splash screen
-│   │       │   ├── VideoPlayerManager.kt # Video controls
-│   │       │   ├── VideoLoadManager.kt # Video loading
-│   │       │   ├── WebSocketManager.kt # WebSocket server
-│   │       │   ├── PreferencesManager.kt # SharedPreferences
-│   │       │   ├── LoggingHelper.kt    # Centralized logging
-│   │       │   └── ...                 # Other activities
-│   │       ├── res/                    # Resources (layouts, icons)
-│   │       └── AndroidManifest.xml
-│   ├── local.properties                # SDK path configuration
-│   └── gradle/                         # Gradle wrapper
-├── embedCast-host/                     # Linux host controller
-│   ├── cli-tool/                       # Command-line interface
-│   └── web-gui/                        # Web-based GUI
-├── embedCast-sdk/                      # Local Android SDK
-└── experimental/                       # Work-in-progress features
-    └── embedCast-updater/              # Update notification system
-        ├── server.py                   # Update server
-        └── deploy_update.sh            # Deployment script
+## WebSocket Protocol
+
+**Port:** 8080
+
+```json
+// Commands
+{"action": "load", "url": "..."}
+{"action": "play|pause|stop|reload"}
+{"action": "seek", "seconds": 10}
+{"action": "quality", "value": "1"}
+
+// Responses
+{"type": "status", "currentTime": 0, "duration": 0, "paused": false}
 ```
 
-## 4. Development Rules
+## Development Rules
 
-### ✅ DO:
-- Keep `MainActivity.kt` under 500 lines
-- Use Kotlin for all new Android code
-- Follow Android TV design guidelines (Leanback)
-- Test WebSocket compatibility after changes
-- Update documentation when changing protocols
+### ✅ DO
+- Use Kotlin for Android code
+- Follow [Kotlin Coding Conventions](https://kotlinlang.org/docs/coding-conventions.html)
+- Keep files under 500 lines
 - Use `PackageInfoCompat` for version checks
 - Use `overrideActivityTransition()` for API 34+
+- Update docs when changing protocols
+- Test WebSocket compatibility after changes
 
-### ❌ DON'T:
-- Don't modify `embedCast-sdk/` (local SDK installation)
-- Don't change WebSocket port (8080) without updating both sides
-- Don't add new dependencies without approval
-- Don't break backward compatibility with existing remote controls
-- Don't use deprecated Android APIs
-- Don't create files larger than 500 lines
+### ❌ DON'T
+- Modify `embedCast-sdk/`
+- Change port 8080 without updating both sides
+- Add dependencies without approval
+- Break backward compatibility
+- Use deprecated Android APIs
 
-### Naming Conventions:
-- **Activities:** `*Activity.kt` (e.g., `SplashActivity.kt`)
-- **Managers:** `*Manager.kt` (e.g., `VideoPlayerManager.kt`)
-- **Helpers:** `*Helper.kt` (e.g., `LoggingHelper.kt`)
-- **Layouts:** `activity_*.xml` (e.g., `activity_splash.xml`)
+## Naming Conventions
 
-## 5. Build & Test Commands
+| Type | Pattern | Example |
+|------|---------|---------|
+| Activities | `*Activity.kt` | `SplashActivity.kt` |
+| Managers | `*Manager.kt` | `VideoPlayerManager.kt` |
+| Helpers | `*Helper.kt` | `LoggingHelper.kt` |
+| Layouts | `activity_*.xml` | `activity_splash.xml` |
+
+## Build Commands
 
 ```bash
-# Navigate to TV app
+# Android TV
 cd embedCast-tv
+./gradlew assembleDebug      # Debug build
+./gradlew assembleRelease   # Release build
+./gradlew test              # Run tests
+./gradlew installDebug       # Install on device
 
-# Build debug APK
-./gradlew assembleDebug
+# Host tools
+cd embedCast-host/cli-tool
+dotnet build --configuration Release
 
-# Run tests
-./gradlew test
-
-# Install on connected device
-./gradlew installDebug
-
-# Check for deprecation warnings
-./gradlew compileDebugKotlin
+cd embedCast-host/web-gui
+dotnet build --configuration Release
 ```
 
-## 6. Key Files Reference
+## Troubleshooting
 
-| File                  | Purpose                      | Criticality  |
-| --------------------- | ---------------------------- | ------------ |
-| `MainActivity.kt`       | Main activity, video control | 🔴 Critical  |
-| `WebSocketManager.kt`   | WebSocket server management  | 🔴 Critical  |
-| `VideoPlayerManager.kt` | Video playback controls      | 🟡 Important |
-| `PreferencesManager.kt` | Save/load video positions    | 🟡 Important |
-| `AndroidManifest.xml`   | App configuration            | 🔴 Critical  |
-| `build.gradle.kts`      | Build configuration          | 🔴 Critical  |
-
-## 7. Dependencies
-
-| Library                | Version | Purpose               |
-| ---------------------- | ------- | --------------------- |
-| `androidx.appcompat`     | 1.6.1   | Android compatibility |
-| `androidx.core:core-ktx` | 1.12.0  | Kotlin extensions     |
-| `androidx.media`         | 1.7.0   | Media session support |
-| `Java-WebSocket`         | 1.5.4   | WebSocket server      |
-| `junit`                  | 4.13.2  | Testing framework     |
-| `mockito`                | 5.5.0   | Mocking framework     |
-| `robolectric`            | 4.10.3  | Android unit tests    |
-
-## 8. Known Issues & TODOs
-
-### Current Issues:
-- `dev-updater` is incomplete (update notification system)
-- WebSocket protocol needs versioning
-- No automated tests for WebSocket communication
-
-### Planned Features:
-- Adaptive icons for Android 8.0+
-- CI/CD pipeline
-- Multi-device casting support
-- Video playlist management
-
-## 9. Emergency Procedures
-
-### If Build Fails:
+### Build Fails
 1. Check `local.properties` SDK path
 2. Run `./gradlew clean`
-3. Clear Gradle caches: `rm -rf ~/.gradle/caches/`
-4. Verify Android SDK is installed
+3. Clear cache: `rm -rf ~/.gradle/caches/`
 
-### If WebSocket Stops Working:
+### WebSocket Issues
 1. Check port 8080 availability
 2. Verify network connectivity
-3. Restart `WebSocketManager`
-4. Check `AndroidManifest.xml` for INTERNET permission
+3. Check `AndroidManifest.xml` for INTERNET permission
 
-### If App Crashes:
+### App Crashes
 1. Check logs: `adb logcat | grep EmbedCast`
 2. Verify `minSdk` compatibility
-3. Test on different Android TV devices
+
+## Example Prompts
+
+```
+# Add new video action
+Add a "volume" action to WebSocketManager that accepts level 0-100
+
+# Fix video player
+Debug why videos don't resume after pause in VideoPlayerManager
+
+# Add new feature
+Implement quality selection menu in MainActivity following Leanback guidelines
+```
+
+## Dependencies
+
+| Library | Version | Purpose |
+|---------|---------|---------|
+| Java-WebSocket | 1.5.4 | WebSocket server |
+| AndroidX Media | 1.7.0 | Media session |
+| JUnit | 4.13.2 | Testing |
+| Mockito | 5.5.0 | Mocking |
+
+## Update This File When
+
+- Adding new dependencies
+- Changing WebSocket protocol
+- Modifying project structure
+- Adding new build steps
