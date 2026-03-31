@@ -92,3 +92,6 @@ logs/
 
 # Android SDK (local installation - do not commit)
 embedCast-sdk/
+
+# Sisyphus project management (internal - do not commit)
+.sisyphus/
