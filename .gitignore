@@ -1,38 +1,80 @@
-# Android SDK (local installation)
-embedCast-sdk/
+# Built application files
+*.apk
+*.ap_
+*.aab
 
-# Build outputs
-**/build/
-**/bin/
-**/obj/
-**/dist/
+# Files for the ART/Dalvik VM
+*.dex
 
-# IDE files
-.idea/
-*.iml
-.vscode/
-*.swp
-*.swo
+# Java class files
+*.class
 
-# OS files
-.DS_Store
-Thumbs.db
+# Generated files
+bin/
+gen/
+out/
 
-# Gradle
+# Gradle files
 .gradle/
+build/
+
+# Local configuration file (sdk path, etc)
 **/local.properties
+
+# Android Studio Navigation editor temp files
+.navigation/
+
+# Android Studio captures folder
+captures/
+
+# IntelliJ
+*.iml
+.idea/
+misc.xml
+deploymentTargetDropDown.xml
+render.experimental.xml
+
+# Keystore files
+*.jks
+*.keystore
+
+# External native build folder generated in Android Studio 2.2 and later
+.externalNativeBuild
+
+# Google Services (e.g. APIs or Firebase)
+google-services.json
+
+# Android Profiling
+*.hprof
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+env/
+venv/
+ENV/
+.env
+*.egg-info/
+dist/
+build/
 
 # .NET
 *.user
 *.suo
 *.userosscache
 *.sln.docstates
+bin/
+obj/
+.vs/
 
-# Python
-__pycache__/
-*.py[cod]
-*$py.class
-.env
+# OS files
+.DS_Store
+Thumbs.db
+ehthumbs.db
+Desktop.ini
 
 # Logs
 *.log
@@ -41,3 +83,12 @@ logs/
 # Temporary files
 *.tmp
 *.temp
+*~
+
+# Backup files
+*.bak
+*.swp
+*.swo
+
+# Android SDK (local installation - do not commit)
+embedCast-sdk/
