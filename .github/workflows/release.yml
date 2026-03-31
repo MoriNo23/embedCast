@@ -44,13 +44,21 @@ jobs:
 
       - name: Build Release APK
         working-directory: embedCast-tv
-        run: ./gradlew assembleRelease --no-daemon --stacktrace
+        run: ./gradlew assembleRelease --no-daemon
+
+      - name: Create APK package
+        run: |
+          cd embedCast-tv/app/build/outputs/apk/release
+          ls -la
+          cp *.apk ../../../../
+          cd ../../../..
+          mv *.apk "EmbedCast-${{ github.ref_name }}-android-tv.apk"
 
       - name: Upload APK artifact
         uses: actions/upload-artifact@v4
         with:
           name: embedCast-apk
-          path: embedCast-tv/app/build/outputs/apk/release/*.apk
+          path: EmbedCast-*.apk
 
   build-host:
     runs-on: ubuntu-latest
@@ -67,23 +75,31 @@ jobs:
         working-directory: embedCast-host/cli-tool
         run: |
           dotnet restore
-          dotnet build --configuration Release
-          dotnet publish --configuration Release --no-build --output ./publish
+          dotnet publish --configuration Release --output ./publish
 
       - name: Build Web GUI
         working-directory: embedCast-host/web-gui
         run: |
           dotnet restore
-          dotnet build --configuration Release
-          dotnet publish --configuration Release --no-build --output ./publish
+          dotnet publish --configuration Release --output ./publish
 
-      - name: Upload host tools
+      - name: Create CLI package
+        run: |
+          cd embedCast-host/cli-tool/publish
+          zip -r "../../../../EmbedCast-${{ github.ref_name }}-cli-tool.zip" .
+          cd ../../../..
+
+      - name: Create Web GUI package
+        run: |
+          cd embedCast-host/web-gui/publish
+          zip -r "../../../../EmbedCast-${{ github.ref_name }}-web-gui.zip" .
+          cd ../../../..
+
+      - name: Upload host tools artifacts
         uses: actions/upload-artifact@v4
         with:
           name: embedCast-host-tools
-          path: |
-            embedCast-host/cli-tool/publish/
-            embedCast-host/web-gui/publish/
+          path: EmbedCast-*.zip
 
   create-release:
     needs: [build-android, build-host]
@@ -91,78 +107,102 @@ jobs:
     permissions:
       contents: write
     steps:
-      - name: Download APK
+      - name: Download all artifacts
         uses: actions/download-artifact@v4
         with:
-          name: embedCast-apk
-          path: ./artifacts/apk
+          path: ./artifacts
 
-      - name: Download host tools
-        uses: actions/download-artifact@v4
-        with:
-          name: embedCast-host-tools
-          path: ./artifacts/host-tools
+      - name: List artifacts
+        run: |
+          echo "=== Artifacts ==="
+          find ./artifacts -type f -name "*.apk" -o -type f -name "*.zip" | head -20
 
       - name: Create Release
         uses: softprops/action-gh-release@v2
         with:
           name: "EmbedCast ${{ github.ref_name }}"
-          generate_release_notes: true
+          draft: false
+          prerelease: false
           body: |
-            ## 🎬 EmbedCast ${{ github.ref_name }}
-
             <p align="center">
-              <img src="https://raw.githubusercontent.com/MoriNo23/embedCast/main/assets/logo.png" alt="EmbedCast Logo" width="120">
+              <img src="https://raw.githubusercontent.com/MoriNo23/embedCast/main/assets/logo.png" alt="EmbedCast Logo" width="150">
             </p>
 
-            ### 📦 What's Included
+            # 🎬 EmbedCast ${{ github.ref_name }}
 
-            | File | Description |
-            |------|-------------|
-            | `*.apk` | Android TV Application |
-            | `cli-tool/` | Linux Command-Line Tool |
-            | `web-gui/` | Web-Based Control Panel |
-
-            ### 🚀 Installation
-
-            **Android TV:**
-            1. Download the APK file
-            2. Transfer to your Android TV device
-            3. Install using a file manager
-
-            **Linux Host:**
-            1. Download the CLI tool or Web GUI
-            2. Extract the archive
-            3. Run the executable
-
-            ### ✨ Features
-
-            - 🎥 Video casting from Linux to Android TV
-            - 🎮 Remote control via WebSocket
-            - 📺 Android TV optimized with Leanback
-            - 🔄 Auto-reconnect on disconnect
-            - 💾 Resume playback from saved positions
-
-            ### 📡 Quick Start
-
-            ```bash
-            # Start WebSocket server on Android TV
-            # (Automatically starts on port 8080)
-
-            # Send commands from Linux host
-            ./cli-tool load "https://example.com/video.mp4"
-            ./cli-tool play
-            ./cli-tool pause
-            ```
-
-            ### 🔗 Links
-
-            - [Documentation](https://github.com/MoriNo23/embedCast#readme)
-            - [Report Issues](https://github.com/MoriNo23/embedCast/issues)
-            - [WebSocket Protocol](https://github.com/MoriNo23/embedCast/blob/main/embedCast-tv/WEBSOCKET_PROTOCOL.md)
+            **Android TV application for video casting with remote control via WebSocket**
 
             ---
+
+            ## 📦 Downloads
+
+            | Platform | File | Description |
+            |----------|------|-------------|
+            | Android TV | `EmbedCast-${{ github.ref_name }}-android-tv.apk` | Install on your Android TV device |
+            | Linux CLI | `EmbedCast-${{ github.ref_name }}-cli-tool.zip` | Command-line interface |
+            | Linux Web GUI | `EmbedCast-${{ github.ref_name }}-web-gui.zip` | Browser-based control panel |
+
+            ---
+
+            ## 🚀 Quick Start
+
+            ### Android TV
+            1. Download the APK
+            2. Transfer to your Android TV
+            3. Install and launch
+
+            ### Linux Host
+            ```bash
+            # Extract CLI tool
+            unzip EmbedCast-${{ github.ref_name }}-cli-tool.zip
+            cd cli-tool
+            ./cli-tool --help
+
+            # Or use Web GUI
+            unzip EmbedCast-${{ github.ref_name }}-web-gui.zip
+            cd web-gui
+            ./web-gui
+            ```
+
+            ---
+
+            ## ✨ Features
+
+            - 🎥 Cast videos from Linux to Android TV
+            - 🎮 Full playback control via WebSocket
+            - 📺 Leanback-optimized interface
+            - 🔄 Auto-reconnect on disconnect
+            - 💾 Resume playback from saved positions
+            - 📡 Real-time status synchronization
+
+            ---
+
+            ## 📡 WebSocket Protocol
+
+            ```bash
+            # Connect to Android TV (default port 8080)
+            ws://TV_IP:8080
+
+            # Commands
+            {"action": "load", "url": "https://example.com/video.mp4"}
+            {"action": "play"}
+            {"action": "pause"}
+            {"action": "seek", "seconds": 120}
+            {"action": "stop"}
+            ```
+
+            ---
+
+            ## 🔗 Links
+
+            - [📖 Documentation](https://github.com/MoriNo23/embedCast#readme)
+            - [🐛 Report Issues](https://github.com/MoriNo23/embedCast/issues)
+            - [📡 WebSocket Protocol](https://github.com/MoriNo23/embedCast/blob/main/embedCast-tv/WEBSOCKET_PROTOCOL.md)
+            - [📜 Changelog](https://github.com/MoriNo23/embedCast/blob/main/CHANGELOG.md)
+
+            ---
+
             ⭐ **Star this repo if you find it useful!**
           files: |
-            ./artifacts/apk/*.apk
-            ./artifacts/host-tools/**/*
+            ./artifacts/**/*.apk
+            ./artifacts/**/*.zip
