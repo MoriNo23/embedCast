@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <style name="Theme.EmbedCastRemote" parent="Theme.Material3.DayNight.NoActionBar">
+        <item name="colorPrimary">@color/embedcast_primary</item>
+        <item name="colorPrimaryContainer">@color/embedcast_secondary</item>
+        <item name="colorOnPrimary">@color/embedcast_on_primary</item>
+        <item name="android:colorBackground">@color/embedcast_background</item>
+        <item name="colorSurface">@color/embedcast_surface</item>
+        <item name="colorOnSurface">@color/embedcast_on_background</item>
+        <item name="colorError">@color/embedcast_error</item>
+        <item name="android:statusBarColor">@color/embedcast_background</item>
+        <item name="android:navigationBarColor">@color/embedcast_background</item>
+    </style>
+</resources>

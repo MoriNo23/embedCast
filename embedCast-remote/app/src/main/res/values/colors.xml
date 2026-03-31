@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- EmbedCast Brand Colors -->
+    <color name="embedcast_primary">#00FFCC</color>
+    <color name="embedcast_secondary">#00CC99</color>
+    <color name="embedcast_background">#1A1A2E</color>
+    <color name="embedcast_surface">#16213E</color>
+    <color name="embedcast_on_primary">#1A1A2E</color>
+    <color name="embedcast_on_background">#FFFFFF</color>
+    <color name="embedcast_error">#FF3860</color>
+
+    <!-- Standard Colors -->
+    <color name="black">#FF000000</color>
+    <color name="white">#FFFFFFFF</color>
+</resources>

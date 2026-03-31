@@ -10,7 +10,7 @@ env:
   FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
 
 jobs:
-  build-android:
+  build-android-tv:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
@@ -48,17 +48,59 @@ jobs:
 
       - name: Create APK package
         run: |
-          cd embedCast-tv/app/build/outputs/apk/release
-          ls -la
-          cp *.apk ../../../../
-          cd ../../../..
-          mv *.apk "EmbedCast-${{ github.ref_name }}-android-tv.apk"
+          cp embedCast-tv/app/build/outputs/apk/release/*.apk "EmbedCast-${{ github.ref_name }}-android-tv.apk"
 
       - name: Upload APK artifact
         uses: actions/upload-artifact@v4
         with:
-          name: embedCast-apk
-          path: EmbedCast-*.apk
+          name: embedCast-tv-apk
+          path: EmbedCast-*-android-tv.apk
+
+  build-android-remote:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          java-version: '17'
+          distribution: 'temurin'
+
+      - name: Setup Android SDK
+        uses: android-actions/setup-android@v3
+        with:
+          sdk-platform: '34'
+          sdk-tools: '34'
+
+      - name: Cache Gradle packages
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.gradle/caches
+            ~/.gradle/wrapper
+          key: ${{ runner.os }}-gradle-${{ hashFiles('embedCast-remote/**/*.gradle*', 'embedCast-remote/**/gradle-wrapper.properties') }}
+          restore-keys: |
+            ${{ runner.os }}-gradle-
+
+      - name: Grant execute permission for gradlew
+        working-directory: embedCast-remote
+        run: chmod +x gradlew
+
+      - name: Build Release APK
+        working-directory: embedCast-remote
+        run: ./gradlew assembleRelease --no-daemon
+
+      - name: Create APK package
+        run: |
+          cp embedCast-remote/app/build/outputs/apk/release/*.apk "EmbedCast-${{ github.ref_name }}-android-remote.apk"
+
+      - name: Upload APK artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: embedCast-remote-apk
+          path: EmbedCast-*-android-remote.apk
 
   build-host:
     runs-on: ubuntu-latest
@@ -86,14 +128,14 @@ jobs:
       - name: Create CLI package
         run: |
           cd embedCast-host/cli-tool/publish
-          zip -r "../../../../EmbedCast-${{ github.ref_name }}-cli-tool.zip" .
-          cd ../../../..
+          zip -r "../../../EmbedCast-${{ github.ref_name }}-cli-tool.zip" .
+          cd ../../..
 
       - name: Create Web GUI package
         run: |
           cd embedCast-host/web-gui/publish
-          zip -r "../../../../EmbedCast-${{ github.ref_name }}-web-gui.zip" .
-          cd ../../../..
+          zip -r "../../../EmbedCast-${{ github.ref_name }}-web-gui.zip" .
+          cd ../../..
 
       - name: Upload host tools artifacts
         uses: actions/upload-artifact@v4
@@ -102,7 +144,7 @@ jobs:
           path: EmbedCast-*.zip
 
   create-release:
-    needs: [build-android, build-host]
+    needs: [build-android-tv, build-android-remote, build-host]
     runs-on: ubuntu-latest
     permissions:
       contents: write
@@ -115,7 +157,7 @@ jobs:
       - name: List artifacts
         run: |
           echo "=== Artifacts ==="
-          find ./artifacts -type f -name "*.apk" -o -type f -name "*.zip" | head -20
+          find ./artifacts -type f | head -20
 
       - name: Create Release
         uses: softprops/action-gh-release@v2
@@ -130,47 +172,64 @@ jobs:
 
             # 🎬 EmbedCast ${{ github.ref_name }}
 
-            **Android TV application for video casting with remote control via WebSocket**
+            **Video casting from Linux/Phone to Android TV with full remote control via WebSocket**
 
             ---
 
             ## 📦 Downloads
 
-            | Platform | File | Description |
-            |----------|------|-------------|
-            | Android TV | `EmbedCast-${{ github.ref_name }}-android-tv.apk` | Install on your Android TV device |
-            | Linux CLI | `EmbedCast-${{ github.ref_name }}-cli-tool.zip` | Command-line interface |
-            | Linux Web GUI | `EmbedCast-${{ github.ref_name }}-web-gui.zip` | Browser-based control panel |
+            ### Android TV
+            | App | File | Description |
+            |-----|------|-------------|
+            | TV App | `EmbedCast-${{ github.ref_name }}-android-tv.apk` | Main app for Android TV |
+
+            ### Mobile Remote
+            | App | File | Description |
+            |-----|------|-------------|
+            | Remote | `EmbedCast-${{ github.ref_name }}-android-remote.apk` | Control from your phone |
+
+            ### Linux Host Tools
+            | App | File | Description |
+            |-----|------|-------------|
+            | CLI Tool | `EmbedCast-${{ github.ref_name }}-cli-tool.zip` | Command-line interface |
+            | Web GUI | `EmbedCast-${{ github.ref_name }}-web-gui.zip` | Browser-based control |
 
             ---
 
             ## 🚀 Quick Start
 
-            ### Android TV
-            1. Download the APK
+            ### 1. Install on Android TV
+            1. Download `EmbedCast-${{ github.ref_name }}-android-tv.apk`
             2. Transfer to your Android TV
-            3. Install and launch
+            3. Install and launch (WebSocket server starts on port 8080)
 
-            ### Linux Host
+            ### 2. Control from Phone
+            1. Download `EmbedCast-${{ github.ref_name }}-android-remote.apk`
+            2. Install on your Android phone
+            3. Enter TV IP address and connect
+
+            ### 3. Or use Linux Host Tools
             ```bash
-            # Extract CLI tool
+            # CLI Tool
             unzip EmbedCast-${{ github.ref_name }}-cli-tool.zip
             cd cli-tool
-            ./cli-tool --help
+            ./cli-tool load "https://example.com/video.mp4"
 
-            # Or use Web GUI
+            # Web GUI
             unzip EmbedCast-${{ github.ref_name }}-web-gui.zip
             cd web-gui
             ./web-gui
+            # Open http://localhost:3000 in browser
             ```
 
             ---
 
             ## ✨ Features
 
-            - 🎥 Cast videos from Linux to Android TV
+            - 🎥 Cast videos from Linux/Phone to Android TV
             - 🎮 Full playback control via WebSocket
-            - 📺 Leanback-optimized interface
+            - 📱 Remote control from mobile app
+            - 📺 Leanback-optimized TV interface
             - 🔄 Auto-reconnect on disconnect
             - 💾 Resume playback from saved positions
             - 📡 Real-time status synchronization
@@ -179,11 +238,7 @@ jobs:
 
             ## 📡 WebSocket Protocol
 
-            ```bash
-            # Connect to Android TV (default port 8080)
-            ws://TV_IP:8080
-
-            # Commands
+            ```json
             {"action": "load", "url": "https://example.com/video.mp4"}
             {"action": "play"}
             {"action": "pause"}

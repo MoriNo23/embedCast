@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">EmbedCast Remote</string>
+    <string name="enter_tv_ip">Enter TV IP Address</string>
+    <string name="connect">Connect</string>
+    <string name="disconnect">Disconnect</string>
+    <string name="connected">Connected</string>
+    <string name="disconnected">Disconnected</string>
+    <string name="loading">Loading...</string>
+    <string name="enter_video_url">Enter Video URL</string>
+    <string name="load_video">Load Video</string>
+    <string name="play">Play</string>
+    <string name="pause">Pause</string>
+    <string name="stop">Stop</string>
+    <string name="connection_error">Connection Error</string>
+    <string name="video_loaded">Video Loaded</string>
+    <string name="command_sent">Command Sent</string>
+</resources>
