@@ -1,0 +1,75 @@
+name: Build Host Tools
+
+on:
+  push:
+    branches: [ main ]
+    paths:
+      - 'embedCast-host/**'
+  pull_request:
+    branches: [ main ]
+    paths:
+      - 'embedCast-host/**'
+  workflow_dispatch:
+
+jobs:
+  build-cli:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup .NET 10.0
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.0.x'
+
+      - name: Restore dependencies
+        working-directory: embedCast-host/cli-tool
+        run: dotnet restore
+
+      - name: Build CLI tool
+        working-directory: embedCast-host/cli-tool
+        run: dotnet build --configuration Release --no-restore
+
+      - name: Publish CLI tool
+        working-directory: embedCast-host/cli-tool
+        run: dotnet publish --configuration Release --no-build --output ./publish
+
+      - name: Upload CLI tool
+        uses: actions/upload-artifact@v4
+        with:
+          name: embedCast-cli-tool
+          path: embedCast-host/cli-tool/publish/
+          retention-days: 30
+
+  build-web-gui:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup .NET 10.0
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.0.x'
+
+      - name: Restore dependencies
+        working-directory: embedCast-host/web-gui
+        run: dotnet restore
+
+      - name: Build Web GUI
+        working-directory: embedCast-host/web-gui
+        run: dotnet build --configuration Release --no-restore
+
+      - name: Publish Web GUI
+        working-directory: embedCast-host/web-gui
+        run: dotnet publish --configuration Release --no-build --output ./publish
+
+      - name: Upload Web GUI
+        uses: actions/upload-artifact@v4
+        with:
+          name: embedCast-web-gui
+          path: embedCast-host/web-gui/publish/
+          retention-days: 30
