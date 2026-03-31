@@ -11,6 +11,9 @@ on:
       - 'embedCast-tv/**'
   workflow_dispatch:
 
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+
 jobs:
   build:
     runs-on: ubuntu-latest
@@ -27,6 +30,9 @@ jobs:
 
       - name: Setup Android SDK
         uses: android-actions/setup-android@v3
+        with:
+          sdk-platform: '34'
+          sdk-tools: '34'
 
       - name: Cache Gradle packages
         uses: actions/cache@v4
@@ -38,16 +44,25 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-gradle-
 
+      - name: Check gradlew exists
+        working-directory: embedCast-tv
+        run: |
+          ls -la gradlew
+          file gradlew
+
       - name: Grant execute permission for gradlew
-        run: chmod +x embedCast-tv/gradlew
+        working-directory: embedCast-tv
+        run: |
+          chmod +x gradlew
+          ls -la gradlew
 
       - name: Build Debug APK
         working-directory: embedCast-tv
-        run: ./gradlew assembleDebug
+        run: ./gradlew assembleDebug --no-daemon --stacktrace
 
       - name: Build Release APK
         working-directory: embedCast-tv
-        run: ./gradlew assembleRelease
+        run: ./gradlew assembleRelease --no-daemon --stacktrace
 
       - name: Upload Debug APK
         uses: actions/upload-artifact@v4
