@@ -1,0 +1,25 @@
+{
+  "active_plan": "/home/fullmetal/Descargas/MovieON/.sisyphus/plans/mejoras-movieon-tv.md",
+  "started_at": "2026-03-31T06:08:44.756Z",
+  "session_ids": [
+    "ses_303e490c1ffeoPA82l0VCq6sqL",
+    "ses_2bd68cf44ffevfO42TgMdgNSxx",
+    "ses_2bd2c6e6effe2VHCiE3sn8aeRa",
+    "ses_2bd1bcfd6ffecCvLZUldhNDzCm",
+    "ses_2bce89c76ffenNPQ3cW9AcJXPe",
+    "ses_2bac255f7ffemgcLj3SkJ3Q7qv"
+  ],
+  "plan_name": "mejoras-movieon-tv",
+  "agent": "atlas",
+  "task_sessions": {
+    "todo:2": {
+      "task_key": "todo:2",
+      "task_label": "2",
+      "task_title": "**Crear VideoPlayerManager class**",
+      "session_id": "ses_2bd68cf44ffevfO42TgMdgNSxx",
+      "agent": "Sisyphus-Junior",
+      "category": "ultrabrain",
+      "updated_at": "2026-03-31T06:34:06.583Z"
+    }
+  }
+}
