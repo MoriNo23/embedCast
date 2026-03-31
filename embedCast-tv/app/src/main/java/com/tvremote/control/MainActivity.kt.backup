@@ -1,0 +1,629 @@
+package com.tvremote.control
+
+import android.os.Bundle
+import android.view.KeyEvent
+import android.view.View
+import android.webkit.JavascriptInterface
+import android.webkit.WebSettings
+import android.webkit.WebView
+import android.webkit.WebStorage
+import android.webkit.CookieManager
+import android.widget.FrameLayout
+import android.widget.LinearLayout
+import android.widget.SeekBar
+import android.widget.TextView
+import androidx.appcompat.app.AppCompatActivity
+import android.content.Context
+import android.content.SharedPreferences
+import android.preference.PreferenceManager
+import org.json.JSONObject
+import java.net.Inet4Address
+import java.net.NetworkInterface
+import android.media.session.MediaSession
+import android.media.session.MediaSession.Callback
+
+class MainActivity : AppCompatActivity(), VideoWebViewClient.ErrorListener {
+
+    private var webView: WebView? = null
+    private lateinit var webViewContainer: FrameLayout
+    private lateinit var statusText: TextView
+    private lateinit var playerOverlay: LinearLayout
+    private lateinit var videoSeekBar: SeekBar
+    private lateinit var currentTimeText: TextView
+    private lateinit var durationText: TextView
+    private lateinit var qualityText: TextView
+
+    private var wsServer: TvWebSocketServer? = null
+    private val hideOverlayRunnable = Runnable { hideOverlay() }
+    private var currentUrl: String? = null
+    private var lastKnownPosition: Float = 0f
+    private var pendingSeekTimeSec: Float = 0f
+    private var currentDuration: Float = 0f
+    private var mediaSession: MediaSession? = null
+    private var mediaSessionCallback: MediaSession.Callback? = null
+    private var overlayVisible = false
+    private var lastSaveTime: Long = 0
+    private val SAVE_INTERVAL_MS = 30_000L // 30 seconds
+    private val sharedPreferences: SharedPreferences by lazy {
+        PreferenceManager.getDefaultSharedPreferences(this)
+    }
+
+    override fun onCreate(savedInstanceState: Bundle?) {
+        super.onCreate(savedInstanceState)
+        setContentView(R.layout.activity_main)
+
+        webViewContainer = findViewById(R.id.webViewContainer)
+        statusText = findViewById(R.id.statusText)
+        playerOverlay = findViewById(R.id.playerOverlay)
+        videoSeekBar = findViewById(R.id.videoSeekBar)
+        currentTimeText = findViewById(R.id.currentTimeText)
+        durationText = findViewById(R.id.durationText)
+        qualityText = findViewById(R.id.qualityText)
+        
+        // Set up SeekBar listener
+        videoSeekBar.setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
+            override fun onProgressChanged(seekBar: SeekBar?, progress: Int, fromUser: Boolean) {
+                if (fromUser) {
+                    // User is dragging the seek bar
+                    showOverlay() // Ensure overlay is visible while interacting
+                    if (currentDuration > 0) {
+                        val targetTime = (progress / 100f) * currentDuration
+                        pendingSeekTimeSec = targetTime // Store in seconds
+                        // Update the current time text to show the target time while dragging
+                        currentTimeText.text = formatTime(targetTime)
+                    }
+                }
+            }
+
+            override fun onStartTrackingTouch(seekBar: SeekBar?) {
+                // User started dragging, show overlay
+                showOverlay()
+            }
+
+            override fun onStopTrackingTouch(seekBar: SeekBar?) {
+                // User stopped dragging, perform the seek
+                if (pendingSeekTimeSec > 0 && webView != null) {
+                    val script = """
+                        (function() {
+                            try {
+                                var hasJW = typeof window.jwplayer !== 'undefined';
+                                var v = document.querySelector('video');
+                                
+                                if (hasJW && typeof jwplayer().seek === 'function') {
+                                    jwplayer().seek(${pendingSeekTimeSec});
+                                } else if (v) {
+                                    v.currentTime = ${pendingSeekTimeSec};
+                                }
+                            } catch(e) {
+                                console.log('Error in seek: ' + e);
+                            }
+                        })();
+                    """.trimIndent()
+                    webView?.evaluateJavascript(script, null)
+                }
+                // Hide overlay after a delay
+                statusText.removeCallbacks(hideOverlayRunnable)
+                statusText.postDelayed(hideOverlayRunnable, 3000)
+            }
+        })
+
+        // Initialize MediaSession for global media controls
+        mediaSessionCallback = object : MediaSession.Callback() {
+            override fun onPlay() {
+                sendLog("MediaSession: Play")
+                runOnUiThread { controlVideo("play") }
+            }
+
+            override fun onPause() {
+                sendLog("MediaSession: Pause")
+                runOnUiThread { controlVideo("pause") }
+            }
+
+            override fun onSeekTo(pos: Long) {
+                sendLog("MediaSession: Seek to ${pos/1000}s")
+                runOnUiThread { controlVideo("seek", (pos/1000).toString()) }
+            }
+
+            override fun onStop() {
+                sendLog("MediaSession: Stop")
+                runOnUiThread {
+                    resetUI()
+                    lastKnownPosition = 0f
+                    statusText.text = "MovieON TV\nServer: ws://${getLocalIpAddress()}:8080"
+                    statusText.visibility = View.VISIBLE
+                }
+            }
+
+            override fun onRewind() {
+                sendLog("MediaSession: Rewind")
+                runOnUiThread { controlVideo("seek", "-10") }
+            }
+
+            override fun onFastForward() {
+                sendLog("MediaSession: FastForward")
+                runOnUiThread { controlVideo("seek", "10") }
+            }
+        }
+        mediaSession = MediaSession(this, "MovieON TV Session").apply {
+            setCallback(mediaSessionCallback!!)
+            isActive = true
+        }
+        startServer()
+    }
+
+    private fun createNewWebView(): WebView {
+        webViewContainer.removeAllViews()
+        webView?.destroy()
+
+        val newWebView = WebView(this).apply {
+            layoutParams = FrameLayout.LayoutParams(
+                FrameLayout.LayoutParams.MATCH_PARENT,
+                FrameLayout.LayoutParams.MATCH_PARENT
+            )
+            isFocusable = true
+            isFocusableInTouchMode = true
+        }
+
+        newWebView.settings.apply {
+            javaScriptEnabled = true
+            domStorageEnabled = true
+            databaseEnabled = true
+            mediaPlaybackRequiresUserGesture = false
+            mixedContentMode = WebSettings.MIXED_CONTENT_ALWAYS_ALLOW
+            allowFileAccess = true
+            setSupportMultipleWindows(false)
+            javaScriptCanOpenWindowsAutomatically = false
+            setNeedInitialFocus(true)
+        }
+
+        newWebView.webViewClient = VideoWebViewClient(this)
+        newWebView.webChromeClient = VideoChromeClient()
+
+        newWebView.addJavascriptInterface(object {
+            @JavascriptInterface
+            fun onVideoUpdate(currentTime: Float, duration: Float, paused: Boolean) {
+                runOnUiThread {
+                    // Validar que el tiempo no sea NaN (0 si lo es)
+                    var safeCurrent = currentTime
+                    if (safeCurrent.isNaN()) safeCurrent = 0f
+                    lastKnownPosition = safeCurrent
+                    syncStateToLaptop(safeCurrent, duration, paused)
+                    // Update SeekBar and UI
+                    if (duration > 0) {
+                        val progress = (safeCurrent / duration) * 100
+                        videoSeekBar.progress = progress.toInt()
+                        currentTimeText.text = formatTime(safeCurrent)
+                        durationText.text = formatTime(duration)
+                        // Show overlay when video is playing
+                        if (!overlayVisible) {
+                            showOverlay()
+                        }
+                    }
+                    // Periodically save the progress (every 30 seconds)
+                    val now = System.currentTimeMillis()
+                    if (now - lastSaveTime >= SAVE_INTERVAL_MS) {
+                        saveCurrentProgress()
+                        lastSaveTime = now
+                    }
+                }
+            }
+
+            @JavascriptInterface
+            fun onQualitiesFound(qualities: String) {
+                runOnUiThread {
+                    qualityText.text = "Qualities: $qualities"
+                }
+            }
+
+            @JavascriptInterface
+            fun onQualityUpdated(quality: String) {
+                runOnUiThread {
+                    qualityText.text = quality
+                    qualityText.visibility = View.VISIBLE
+                    qualityText.postDelayed({ qualityText.visibility = View.GONE }, 3000)
+                }
+            }
+
+            @JavascriptInterface
+            fun onConnectionInterrupted() {
+                this@MainActivity.onConnectionInterrupted()
+            }
+
+            @JavascriptInterface
+            fun getResumeTime(): Float {
+                return lastKnownPosition
+            }
+
+            @JavascriptInterface
+            fun showToast(msg: String) {
+                runOnUiThread {
+                    statusText.text = msg
+                    statusText.visibility = View.VISIBLE
+                    statusText.postDelayed({ statusText.visibility = View.GONE }, 3000)
+                }
+            }
+        }, "AndroidTV")
+
+        webViewContainer.addView(newWebView)
+        return newWebView
+    }
+
+    private fun startServer() {
+        val ip = getLocalIpAddress() ?: "Unknown IP"
+        statusText.text = "MovieON TV\nServer: ws://$ip:8080"
+
+        wsServer = TvWebSocketServer(8080) { json ->
+            runOnUiThread {
+                handleCommand(json)
+            }
+        }
+        wsServer?.isReuseAddr = true
+        try {
+            wsServer?.start()
+        } catch (e: Exception) {
+            sendLog("Error starting server: " + e.message)
+        }
+    }
+
+    private fun handleCommand(json: JSONObject) {
+        when (json.optString("action")) {
+            "load" -> {
+                val url = json.optString("url")
+                if (url.isNotEmpty()) {
+                    if (currentUrl != url) {
+                        lastKnownPosition = 0f
+                    }
+                    loadVideoUrl(url)
+                }
+            }
+            "play" -> controlVideo("play")
+            "pause" -> controlVideo("pause")
+            "stop" -> {
+                resetUI()
+                lastKnownPosition = 0f
+                statusText.text = "MovieON TV\nServer: ws://${getLocalIpAddress()}:8080"
+                statusText.visibility = View.VISIBLE
+            }
+            "seek" -> {
+                val seconds = json.optInt("seconds", 0)
+                controlVideo("seek", seconds.toString())
+            }
+            "quality" -> {
+                val qualityLevel = json.optString("value", "1")
+                controlVideo("quality", qualityLevel)
+            }
+            "reload" -> {
+                forceReload()
+            }
+        }
+    }
+
+    private fun loadVideoUrl(url: String) {
+        currentUrl = url
+        // Load saved progress for this URL
+        lastKnownPosition = loadProgress(url)
+        runOnUiThread {
+            sendLog("Loading URL: $url")
+            statusText.text = "Loading..."
+            statusText.visibility = View.VISIBLE
+            statusText.postDelayed({ statusText.visibility = View.GONE }, 1500)
+            
+            if (webView == null) {
+                webView = createNewWebView()
+            }
+            
+            webView?.loadUrl(url)
+            webView?.requestFocus()
+        }
+    }
+
+    private fun forceReload() {
+        runOnUiThread {
+            if (webView != null) {
+                sendLog("Reloading player (Cache intact)...")
+                statusText.text = "Reloading player..."
+                statusText.visibility = View.VISIBLE
+                statusText.postDelayed({ statusText.visibility = View.GONE }, 1500)
+                
+                webView?.reload()
+                webView?.requestFocus()
+            } else {
+                sendLog("No active player to reload")
+            }
+        }
+    }
+
+    private fun resetUI() {
+        webViewContainer.removeAllViews()
+        
+        webView?.let {
+            it.stopLoading()
+            it.clearCache(true)
+            it.clearHistory()
+            it.loadUrl("about:blank")
+            it.destroy()
+        }
+        webView = null
+        
+        CookieManager.getInstance().removeAllCookies(null)
+        WebStorage.getInstance().deleteAllData()
+        
+        playerOverlay.visibility = View.GONE
+        videoSeekBar.progress = 0
+        currentTimeText.text = "00:00"
+        durationText.text = "00:00"
+        qualityText.text = "Quality: Auto"
+        
+        syncStateToLaptop(0f, 0f, true)
+    }
+
+    private fun showQualityOverlay(label: String) {
+        qualityText.text = "Quality: $label"
+        qualityText.visibility = View.VISIBLE
+        qualityText.postDelayed({ qualityText.visibility = View.GONE }, 3000)
+    }
+    }
+
+    private fun controlVideo(action: String, value: String = "") {
+        val script = """
+            (function() {
+                try {
+                    var hasJW = typeof window.jwplayer !== 'undefined';
+                    var v = document.querySelector('video');
+                    
+                    if ('$action' === 'play' || '$action' === 'pause') {
+                        if (hasJW && typeof jwplayer().getState === 'function') {
+                            if (jwplayer().getState() === 'playing') {
+                                jwplayer().pause();
+                            } else {
+                                jwplayer().play();
+                            }
+                        } else if (v) {
+                            v.paused ? v.play() : v.pause();
+                        } else {
+                            var el = document.elementFromPoint(window.innerWidth/2, window.innerHeight/2);
+                            if (el) el.click();
+                        }
+                    }
+                    
+                    if ('$action' === 'seek') {
+                        if (hasJW && typeof jwplayer().getPosition === 'function') {
+                            var curr = jwplayer().getPosition();
+                            jwplayer().seek(curr + parseFloat('$value'));
+                        } else if (v) {
+                            v.currentTime += parseFloat('$value');
+                        }
+                    }
+                    
+                    if ('$action' === 'quality') {
+                        if (hasJW && typeof jwplayer().getQualityLevels === 'function') {
+                            var levels = jwplayer().getQualityLevels();
+                            var targetIdx = parseInt('$value') - 1;
+                            if (levels && targetIdx >= 0 && targetIdx < levels.length) {
+                                jwplayer().setCurrentQuality(targetIdx);
+                                // Give it a moment to apply, then get current quality and report back
+                                setTimeout(function() {
+                                    try {
+                                        var currentLevel = jwplayer().getCurrentQuality();
+                                        var currentLabel = levels[currentLevel] ? levels[currentLevel].label : 'Unknown';
+                                        AndroidTV.onQualityUpdated("Calidad: " + currentLabel);
+                                    } catch(e) {
+                                        console.log('Error getting current quality: ' + e);
+                                        AndroidTV.onQualityUpdated("Calidad: Desconocida");
+                                    }
+                                }, 300);
+                            } else {
+                                AndroidTV.showToast("Calidad " + parseInt('$value') + " no disponible");
+                            }
+                        } else {
+                            // Fallback for non-JWPlayer (limited support)
+                            AndroidTV.showToast("Cambio de calidad no soportado en este reproductor");
+                        }
+                    }
+                } catch(e) {
+                    console.log('Error en controlVideo JS: ' + e);
+                }
+            })();
+        """.trimIndent()
+        
+        webView?.evaluateJavascript(script, null)
+        // ELIMINADO EL SHOW OVERLAY AQUI PARA NO MOSTRAR LA UI NUNCA MAS
+    }
+
+    override fun dispatchKeyEvent(event: KeyEvent): Boolean {
+        if (event.action == KeyEvent.ACTION_DOWN) {
+            sendLog("Key Event: ${event.keyCode}")
+            when (event.keyCode) {
+                // FORCE RELOAD (RED BUTTON)
+                KeyEvent.KEYCODE_PROG_RED -> {
+                    sendLog("Dispatch: FORCE RELOAD (RED)")
+                    forceReload()
+                    return true
+                }
+
+                // STOP / EXIT (BLUE OR STOP BUTTON)
+                KeyEvent.KEYCODE_PROG_BLUE, KeyEvent.KEYCODE_MEDIA_STOP -> {
+                    sendLog("Dispatch: STOP")
+                    if (webView != null) {
+                        resetUI()
+                        lastKnownPosition = 0f
+                        statusText.text = "MovieON TV\nServer: ws://${getLocalIpAddress()}:8080"
+                        statusText.visibility = View.VISIBLE
+                        return true
+                    }
+                }
+
+                // BACK BUTTON (STOP VIDEO INSTEAD OF EXIT APP)
+                KeyEvent.KEYCODE_BACK -> {
+                    sendLog("Dispatch: BACK (Stopping video)")
+                    if (webView != null) {
+                        resetUI()
+                        lastKnownPosition = 0f
+                        statusText.text = "MovieON TV\nServer: ws://${getLocalIpAddress()}:8080"
+                        statusText.visibility = View.VISIBLE
+                        return true // Consumimos el back para no salir de la app
+                    }
+                }
+
+                // CALIDAD (TECLAS NUMÉRICAS DEL 1 AL 9)
+                KeyEvent.KEYCODE_1 -> { controlVideo("quality", "1"); return true }
+                KeyEvent.KEYCODE_2 -> { controlVideo("quality", "2"); return true }
+                KeyEvent.KEYCODE_3 -> { controlVideo("quality", "3"); return true }
+                KeyEvent.KEYCODE_4 -> { controlVideo("quality", "4"); return true }
+                KeyEvent.KEYCODE_5 -> { controlVideo("quality", "5"); return true }
+                KeyEvent.KEYCODE_6 -> { controlVideo("quality", "6"); return true }
+                KeyEvent.KEYCODE_7 -> { controlVideo("quality", "7"); return true }
+                KeyEvent.KEYCODE_8 -> { controlVideo("quality", "8"); return true }
+                KeyEvent.KEYCODE_9 -> { controlVideo("quality", "9"); return true }
+
+                // PLAY / PAUSE (D-PAD CENTER OR MEDIA KEYS)
+                KeyEvent.KEYCODE_DPAD_CENTER, KeyEvent.KEYCODE_ENTER, KeyEvent.KEYCODE_MEDIA_PLAY_PAUSE -> {
+                    sendLog("Dispatch: PLAY/PAUSE via JS/API")
+                    controlVideo("play")
+                    return true
+                }
+
+                // SEEK BACKWARD
+                KeyEvent.KEYCODE_DPAD_LEFT, KeyEvent.KEYCODE_MEDIA_REWIND -> {
+                    sendLog("Dispatch: SEEK BACK via JS/API")
+                    controlVideo("seek", "-10")
+                    return true
+                }
+
+                // SEEK FORWARD
+                KeyEvent.KEYCODE_DPAD_RIGHT, KeyEvent.KEYCODE_MEDIA_FAST_FORWARD -> {
+                    sendLog("Dispatch: SEEK FORWARD via JS/API")
+                    controlVideo("seek", "10")
+                    return true
+                }
+
+                // ALL OTHER KEYS: Let the player/WebView handle them
+                else -> {
+                    return false
+                }
+            }
+        }
+        return super.dispatchKeyEvent(event)
+    }
+
+    override fun onKeyDown(keyCode: Int, event: KeyEvent?): Boolean {
+        // Todo se maneja ahora en dispatchKeyEvent para ganar velocidad.
+        return super.onKeyDown(keyCode, event)
+    }
+
+    override fun onError(description: String) {
+        runOnUiThread {
+            statusText.text = "Error: $description\nPress Menu to retry"
+            statusText.visibility = View.VISIBLE
+            webViewContainer.visibility = View.GONE
+        }
+    }
+
+    override fun onRetry(url: String) {
+        runOnUiThread {
+            statusText.text = "Reconnecting..."
+            statusText.visibility = View.VISIBLE
+            statusText.postDelayed({ statusText.visibility = View.GONE }, 1500)
+        }
+    }
+
+    override fun onConnectionInterrupted() {
+        runOnUiThread {
+            statusText.text = "Connection lost...\nAuto-recovering in 3s"
+            statusText.visibility = View.VISIBLE
+            statusText.postDelayed({
+                forceReload()
+            }, 3000)
+        }
+    }
+
+    override fun getResumeTime(): Float {
+        return lastKnownPosition
+    }
+
+    private fun syncStateToLaptop(current: Float, duration: Float, paused: Boolean) {
+        val status = JSONObject().apply {
+            put("type", "status")
+            put("currentTime", current)
+            put("duration", duration)
+            put("paused", paused)
+        }
+        wsServer?.sendStatus(status)
+    }
+
+    private fun sendLog(msg: String) {
+        val logData = JSONObject().apply {
+            put("type", "log")
+            put("message", msg)
+        }
+        wsServer?.sendStatus(logData)
+    }
+
+    private fun hideOverlay() {
+        playerOverlay.visibility = View.GONE
+        overlayVisible = false
+    }
+
+    private fun showOverlay() {
+        if (!overlayVisible) {
+            playerOverlay.visibility = View.VISIBLE
+            overlayVisible = true
+        }
+        // Reset the hide timer
+        statusText.removeCallbacks(hideOverlayRunnable)
+        statusText.postDelayed(hideOverlayRunnable, 3000)
+    }
+
+    private fun formatTime(seconds: Float): String {
+        val s = Math.max(0, seconds.toInt())
+        val m = s / 60
+        val sec = s % 60
+        return String.format("%02d:%02d", m, sec)
+    }
+
+    private fun getLocalIpAddress(): String? {
+        try {
+            val interfaces = NetworkInterface.getNetworkInterfaces()
+            while (interfaces.hasMoreElements()) {
+                val networkInterface = interfaces.nextElement()
+                val addresses = networkInterface.inetAddresses
+                while (addresses.hasMoreElements()) {
+                    val address = addresses.nextElement()
+                    if (!address.isLoopbackAddress && address is Inet4Address) {
+                        return address.hostAddress
+                    }
+                }
+            }
+        } catch (e: Exception) {
+            e.printStackTrace()
+        }
+        return null
+    }
+
+    private fun saveProgress(url: String, timeMs: Float) {
+        // Sanitize URL to use as key (remove invalid characters for SharedPreferences)
+        val safeKey = url.replace("[^a-zA-Z0-9]", "_")
+        val editor = sharedPreferences.edit()
+        editor.putFloat("progress_$safeKey", timeMs)
+        editor.apply()
+    }
+
+    private fun loadProgress(url: String): Float {
+        // Sanitize URL to use as key
+        val safeKey = url.replace("[^a-zA-Z0-9]", "_")
+        return sharedPreferences.getFloat("progress_$safeKey", 0f)
+    }
+
+    private fun saveCurrentProgress() {
+        val url = currentUrl
+        if (url != null && url.isNotEmpty()) {
+            saveProgress(url, lastKnownPosition)
+        }
+    }
+
+    override fun onDestroy() {
+        super.onDestroy()
+        wsServer?.stop()
+        webView?.destroy()
+    }
+}
