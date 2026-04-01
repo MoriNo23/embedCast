@@ -250,6 +250,8 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
+        with:
+          ref: main
 
       - name: Set up JDK 17
         uses: actions/setup-java@v4
@@ -277,9 +279,23 @@ jobs:
         working-directory: embedCast-tv
         run: chmod +x gradlew
 
+      - name: Decode Keystore
+        run: |
+          echo "${{ secrets.KEYSTORE_BASE64 }}" | base64 -d > embedCast-tv/app/release.keystore
+
       - name: Build Release APK
         working-directory: embedCast-tv
+        env:
+          KEYSTORE_PATH: release.keystore
+          KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
+          KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
         run: ./gradlew assembleRelease --no-daemon
+
+      - name: Verify APK signature
+        run: |
+          APK=$(find embedCast-tv/app/build/outputs/apk/release/ -name "*.apk" | head -1)
+          $ANDROID_HOME/build-tools/34.0.0/apksigner verify -v "$APK"
 
       - name: Create APK package
         run: |
@@ -383,8 +399,11 @@ jobs:
           path: EmbedCast-*.zip
 
   create-release:
-    needs: [detect-changes, calculate-version]
-    if: needs.calculate-version.outputs.should_release == 'true'
+    needs: [detect-changes, calculate-version, build-android-tv, build-android-remote, build-host]
+    if: |
+      always() && 
+      needs.calculate-version.outputs.should_release == 'true' && 
+      !contains(needs.*.result, 'failure')
     runs-on: ubuntu-latest
     permissions:
       contents: write
