@@ -11,8 +11,8 @@ android {
         applicationId = "com.embedcast.tv"
         minSdk = 24
         targetSdk = 34
-        versionCode = 1
-        versionName = "1.0"
+        versionCode = 10101
+        versionName = "1.1.1"
     }
 
     buildTypes {
