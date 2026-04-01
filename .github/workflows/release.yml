@@ -2,15 +2,247 @@ name: Create Release
 
 on:
   push:
-    tags:
-      - 'v*'
+    branches: [ main ]
   workflow_dispatch:
 
 env:
   FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
 
 jobs:
+  detect-changes:
+    runs-on: ubuntu-latest
+    outputs:
+      tv_changed: ${{ steps.changes.outputs.tv_changed }}
+      remote_changed: ${{ steps.changes.outputs.remote_changed }}
+      host_changed: ${{ steps.changes.outputs.host_changed }}
+      any_changed: ${{ steps.changes.outputs.any_changed }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Detect changed files
+        id: changes
+        run: |
+          # Get the latest tag
+          LATEST_TAG=$(git describe --tags --abbrev=0 2>/dev/null || echo "")
+
+          if [ -n "$LATEST_TAG" ]; then
+            echo "Comparing changes since $LATEST_TAG"
+            CHANGED_FILES=$(git diff --name-only ${LATEST_TAG}..HEAD)
+          else
+            echo "No previous tag found, checking all commits"
+            CHANGED_FILES=$(git log --pretty=format: --name-only --diff-filter=ACMRT | sort -u)
+          fi
+
+          echo "=== Changed files ==="
+          echo "$CHANGED_FILES"
+
+          # Check which modules changed
+          TV_CHANGED="false"
+          REMOTE_CHANGED="false"
+          HOST_CHANGED="false"
+
+          if echo "$CHANGED_FILES" | grep -q "^embedCast-tv/"; then
+            TV_CHANGED="true"
+            echo "✓ embedCast-tv changed"
+          fi
+
+          if echo "$CHANGED_FILES" | grep -q "^embedCast-remote/"; then
+            REMOTE_CHANGED="true"
+            echo "✓ embedCast-remote changed"
+          fi
+
+          if echo "$CHANGED_FILES" | grep -q "^embedCast-host/"; then
+            HOST_CHANGED="true"
+            echo "✓ embedCast-host changed"
+          fi
+
+          # If no specific module changed but there are changes, build all
+          ANY_CHANGED="false"
+          if [ "$TV_CHANGED" = "true" ] || [ "$REMOTE_CHANGED" = "true" ] || [ "$HOST_CHANGED" = "true" ]; then
+            ANY_CHANGED="true"
+          elif [ -n "$CHANGED_FILES" ]; then
+            echo "Other files changed, will build all modules"
+            TV_CHANGED="true"
+            REMOTE_CHANGED="true"
+            HOST_CHANGED="true"
+            ANY_CHANGED="true"
+          fi
+
+          echo "tv_changed=$TV_CHANGED" >> $GITHUB_OUTPUT
+          echo "remote_changed=$REMOTE_CHANGED" >> $GITHUB_OUTPUT
+          echo "host_changed=$HOST_CHANGED" >> $GITHUB_OUTPUT
+          echo "any_changed=$ANY_CHANGED" >> $GITHUB_OUTPUT
+
+      - name: Show detection results
+        run: |
+          echo "TV changed: ${{ steps.changes.outputs.tv_changed }}"
+          echo "Remote changed: ${{ steps.changes.outputs.remote_changed }}"
+          echo "Host changed: ${{ steps.changes.outputs.host_changed }}"
+          echo "Any changed: ${{ steps.changes.outputs.any_changed }}"
+
+  calculate-version:
+    needs: detect-changes
+    if: needs.detect-changes.outputs.any_changed == 'true'
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.version.outputs.version }}
+      version_code: ${{ steps.version.outputs.version_code }}
+      release_type: ${{ steps.version.outputs.release_type }}
+      should_release: ${{ steps.version.outputs.should_release }}
+      tv_version: ${{ steps.version.outputs.tv_version }}
+      remote_version: ${{ steps.version.outputs.remote_version }}
+      host_version: ${{ steps.version.outputs.host_version }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Calculate semantic version
+        id: version
+        run: |
+          # Get the latest tag
+          LATEST_TAG=$(git describe --tags --abbrev=0 2>/dev/null || echo "v0.0.0")
+          echo "Latest tag: $LATEST_TAG"
+
+          # Parse version components
+          VERSION=${LATEST_TAG#v}
+          MAJOR=$(echo $VERSION | cut -d. -f1)
+          MINOR=$(echo $VERSION | cut -d. -f2)
+          PATCH=$(echo $VERSION | cut -d. -f3)
+
+          echo "Current version: $MAJOR.$MINOR.$PATCH"
+
+          # Get commits since last tag
+          if [ "$LATEST_TAG" = "v0.0.0" ]; then
+            COMMITS=$(git log --pretty=format:"%s" --no-merges)
+          else
+            COMMITS=$(git log ${LATEST_TAG}..HEAD --pretty=format:"%s" --no-merges)
+          fi
+
+          # Determine release type based on conventional commits
+          RELEASE_TYPE="patch"
+
+          if echo "$COMMITS" | grep -qE "^[a-z]+(\(.+\))?!:|BREAKING CHANGE"; then
+            RELEASE_TYPE="major"
+            echo "Detected: Breaking change (major)"
+          elif echo "$COMMITS" | grep -qE "^feat(\(.+\))?:"; then
+            RELEASE_TYPE="minor"
+            echo "Detected: New feature (minor)"
+          elif echo "$COMMITS" | grep -qE "^fix(\(.+\))?:"; then
+            RELEASE_TYPE="patch"
+            echo "Detected: Bug fix (patch)"
+          else
+            # Check if there are any commits at all
+            if [ -z "$COMMITS" ]; then
+              echo "No new commits since last tag"
+              echo "should_release=false" >> $GITHUB_OUTPUT
+              echo "version=$MAJOR.$MINOR.$PATCH" >> $GITHUB_OUTPUT
+              echo "version_code=$((MAJOR * 10000 + MINOR * 100 + PATCH))" >> $GITHUB_OUTPUT
+              echo "release_type=none" >> $GITHUB_OUTPUT
+              exit 0
+            fi
+            RELEASE_TYPE="patch"
+            echo "Detected: Other changes (patch)"
+          fi
+
+          # Calculate new version
+          if [ "$RELEASE_TYPE" = "major" ]; then
+            NEW_MAJOR=$((MAJOR + 1))
+            NEW_MINOR=0
+            NEW_PATCH=0
+          elif [ "$RELEASE_TYPE" = "minor" ]; then
+            NEW_MAJOR=$MAJOR
+            NEW_MINOR=$((MINOR + 1))
+            NEW_PATCH=0
+          else
+            NEW_MAJOR=$MAJOR
+            NEW_MINOR=$MINOR
+            NEW_PATCH=$((PATCH + 1))
+          fi
+
+          NEW_VERSION="$NEW_MAJOR.$NEW_MINOR.$NEW_PATCH"
+          VERSION_CODE=$((NEW_MAJOR * 10000 + NEW_MINOR * 100 + NEW_PATCH))
+
+          echo "New version: $NEW_VERSION"
+          echo "Version code: $VERSION_CODE"
+          echo "Release type: $RELEASE_TYPE"
+
+          # Calculate individual module versions based on what changed
+          TV_CHANGED="${{ needs.detect-changes.outputs.tv_changed }}"
+          REMOTE_CHANGED="${{ needs.detect-changes.outputs.remote_changed }}"
+          HOST_CHANGED="${{ needs.detect-changes.outputs.host_changed }}"
+
+          TV_VERSION="$NEW_VERSION"
+          REMOTE_VERSION="$NEW_VERSION"
+          HOST_VERSION="$NEW_VERSION"
+
+          # If only specific modules changed, we could use different versioning
+          # For now, we use the same version for all but track what changed
+          echo "tv_version=$TV_VERSION" >> $GITHUB_OUTPUT
+          echo "remote_version=$REMOTE_VERSION" >> $GITHUB_OUTPUT
+          echo "host_version=$HOST_VERSION" >> $GITHUB_OUTPUT
+
+          echo "version=$NEW_VERSION" >> $GITHUB_OUTPUT
+          echo "version_code=$VERSION_CODE" >> $GITHUB_OUTPUT
+          echo "release_type=$RELEASE_TYPE" >> $GITHUB_OUTPUT
+          echo "should_release=true" >> $GITHUB_OUTPUT
+
+      - name: Show version info
+        run: |
+          echo "Version: ${{ steps.version.outputs.version }}"
+          echo "Version Code: ${{ steps.version.outputs.version_code }}"
+          echo "Release Type: ${{ steps.version.outputs.release_type }}"
+          echo "Should Release: ${{ steps.version.outputs.should_release }}"
+          echo "TV Version: ${{ steps.version.outputs.tv_version }}"
+          echo "Remote Version: ${{ steps.version.outputs.remote_version }}"
+          echo "Host Version: ${{ steps.version.outputs.host_version }}"
+
+  update-version:
+    needs: [detect-changes, calculate-version]
+    if: needs.calculate-version.outputs.should_release == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Update version in build.gradle.kts
+        run: |
+          VERSION="${{ needs.calculate-version.outputs.version }}"
+          VERSION_CODE="${{ needs.calculate-version.outputs.version_code }}"
+
+          # Update embedCast-tv only if it changed
+          if [ "${{ needs.detect-changes.outputs.tv_changed }}" = "true" ]; then
+            sed -i "s/versionCode = [0-9]*/versionCode = $VERSION_CODE/" embedCast-tv/app/build.gradle.kts
+            sed -i "s/versionName = \"[^\"]*\"/versionName = \"$VERSION\"/" embedCast-tv/app/build.gradle.kts
+            echo "✓ Updated embedCast-tv to $VERSION"
+          fi
+
+          # Update embedCast-remote only if it changed
+          if [ "${{ needs.detect-changes.outputs.remote_changed }}" = "true" ]; then
+            sed -i "s/versionCode = [0-9]*/versionCode = $VERSION_CODE/" embedCast-remote/app/build.gradle.kts
+            sed -i "s/versionName = \"[^\"]*\"/versionName = \"$VERSION\"/" embedCast-remote/app/build.gradle.kts
+            echo "✓ Updated embedCast-remote to $VERSION"
+          fi
+
+          echo "Updated version to $VERSION (code: $VERSION_CODE)"
+
+      - name: Commit version update
+        run: |
+          git config --local user.email "github-actions[bot]@users.noreply.github.com"
+          git config --local user.name "github-actions[bot]"
+          git add embedCast-tv/app/build.gradle.kts embedCast-remote/app/build.gradle.kts
+          git diff --staged --quiet || git commit -m "chore(release): bump version to ${{ needs.calculate-version.outputs.version }}"
+          git push
+
   build-android-tv:
+    needs: [detect-changes, calculate-version, update-version]
+    if: needs.detect-changes.outputs.tv_changed == 'true' && needs.calculate-version.outputs.should_release == 'true'
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
@@ -48,7 +280,7 @@ jobs:
 
       - name: Create APK package
         run: |
-          cp embedCast-tv/app/build/outputs/apk/release/*.apk "EmbedCast-${{ github.ref_name }}-android-tv.apk"
+          cp embedCast-tv/app/build/outputs/apk/release/*.apk "EmbedCast-v${{ needs.calculate-version.outputs.version }}-android-tv.apk"
 
       - name: Upload APK artifact
         uses: actions/upload-artifact@v4
@@ -57,6 +289,8 @@ jobs:
           path: EmbedCast-*-android-tv.apk
 
   build-android-remote:
+    needs: [detect-changes, calculate-version, update-version]
+    if: needs.detect-changes.outputs.remote_changed == 'true' && needs.calculate-version.outputs.should_release == 'true'
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
@@ -94,7 +328,7 @@ jobs:
 
       - name: Create APK package
         run: |
-          cp embedCast-remote/app/build/outputs/apk/release/*.apk "EmbedCast-${{ github.ref_name }}-android-remote.apk"
+          cp embedCast-remote/app/build/outputs/apk/release/*.apk "EmbedCast-v${{ needs.calculate-version.outputs.version }}-android-remote.apk"
 
       - name: Upload APK artifact
         uses: actions/upload-artifact@v4
@@ -103,6 +337,8 @@ jobs:
           path: EmbedCast-*-android-remote.apk
 
   build-host:
+    needs: [detect-changes, calculate-version, update-version]
+    if: needs.detect-changes.outputs.host_changed == 'true' && needs.calculate-version.outputs.should_release == 'true'
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
@@ -128,13 +364,13 @@ jobs:
       - name: Create CLI package
         run: |
           cd embedCast-host/cli-tool/publish
-          zip -r "../../../EmbedCast-${{ github.ref_name }}-cli-tool.zip" .
+          zip -r "../../../EmbedCast-v${{ needs.calculate-version.outputs.version }}-cli-tool.zip" .
           cd ../../..
 
       - name: Create Web GUI package
         run: |
           cd embedCast-host/web-gui/publish
-          zip -r "../../../EmbedCast-${{ github.ref_name }}-web-gui.zip" .
+          zip -r "../../../EmbedCast-v${{ needs.calculate-version.outputs.version }}-web-gui.zip" .
           cd ../../..
 
       - name: Upload host tools artifacts
@@ -144,11 +380,15 @@ jobs:
           path: EmbedCast-*.zip
 
   create-release:
-    needs: [build-android-tv, build-android-remote, build-host]
+    needs: [calculate-version, build-android-tv, build-android-remote, build-host]
+    if: needs.calculate-version.outputs.should_release == 'true' && (needs.detect-changes.outputs.tv_changed == 'true' || needs.detect-changes.outputs.remote_changed == 'true' || needs.detect-changes.outputs.host_changed == 'true')
     runs-on: ubuntu-latest
     permissions:
       contents: write
     steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
       - name: Download all artifacts
         uses: actions/download-artifact@v4
         with:
@@ -159,105 +399,90 @@ jobs:
           echo "=== Artifacts ==="
           find ./artifacts -type f | head -20
 
+      - name: Create Tag
+        run: |
+          git config --local user.email "github-actions[bot]@users.noreply.github.com"
+          git config --local user.name "github-actions[bot]"
+          git tag -a "v${{ needs.calculate-version.outputs.version }}" -m "Release v${{ needs.calculate-version.outputs.version }}"
+          git push origin "v${{ needs.calculate-version.outputs.version }}"
+
+      - name: Generate Release Notes
+        run: |
+          VERSION="${{ needs.calculate-version.outputs.version }}"
+          RELEASE_TYPE="${{ needs.calculate-version.outputs.release_type }}"
+          TV_CHANGED="${{ needs.detect-changes.outputs.tv_changed }}"
+          REMOTE_CHANGED="${{ needs.detect-changes.outputs.remote_changed }}"
+          HOST_CHANGED="${{ needs.detect-changes.outputs.host_changed }}"
+
+          # Get commits since last tag
+          LATEST_TAG=$(git describe --tags --abbrev=0 HEAD~1 2>/dev/null || echo "")
+
+          if [ -n "$LATEST_TAG" ]; then
+            echo "## 📝 Changes since $LATEST_TAG" > release_notes.md
+            echo "" >> release_notes.md
+
+            # Breaking changes
+            BREAKING=$(git log ${LATEST_TAG}..HEAD --pretty=format:"- %s" --no-merges | grep -E "^[a-z]+(\(.+\))?!:|BREAKING CHANGE" || true)
+            if [ -n "$BREAKING" ]; then
+              echo "### ⚠️ Breaking Changes" >> release_notes.md
+              echo "$BREAKING" >> release_notes.md
+              echo "" >> release_notes.md
+            fi
+
+            # Features
+            FEATURES=$(git log ${LATEST_TAG}..HEAD --pretty=format:"- %s" --no-merges | grep -E "^feat(\(.+\))?:" || true)
+            if [ -n "$FEATURES" ]; then
+              echo "### ✨ Features" >> release_notes.md
+              echo "$FEATURES" >> release_notes.md
+              echo "" >> release_notes.md
+            fi
+
+            # Fixes
+            FIXES=$(git log ${LATEST_TAG}..HEAD --pretty=format:"- %s" --no-merges | grep -E "^fix(\(.+\))?:" || true)
+            if [ -n "$FIXES" ]; then
+              echo "### 🐛 Bug Fixes" >> release_notes.md
+              echo "$FIXES" >> release_notes.md
+              echo "" >> release_notes.md
+            fi
+
+            # Other changes
+            OTHERS=$(git log ${LATEST_TAG}..HEAD --pretty=format:"- %s" --no-merges | grep -vE "^(feat|fix)(\(.+\))?:|^[a-z]+(\(.+\))?!:|BREAKING CHANGE" || true)
+            if [ -n "$OTHERS" ]; then
+              echo "### 🔧 Other Changes" >> release_notes.md
+              echo "$OTHERS" >> release_notes.md
+              echo "" >> release_notes.md
+            fi
+          else
+            echo "## 📝 Initial Release" > release_notes.md
+            echo "" >> release_notes.md
+          fi
+
+          # Show which modules were updated
+          echo "" >> release_notes.md
+          echo "### 📦 Updated Components" >> release_notes.md
+          if [ "$TV_CHANGED" = "true" ]; then
+            echo "- ✅ Android TV App" >> release_notes.md
+          fi
+          if [ "$REMOTE_CHANGED" = "true" ]; then
+            echo "- ✅ Mobile Remote App" >> release_notes.md
+          fi
+          if [ "$HOST_CHANGED" = "true" ]; then
+            echo "- ✅ Host Tools (CLI + Web GUI)" >> release_notes.md
+          fi
+          echo "" >> release_notes.md
+
+          echo "---" >> release_notes.md
+          echo "" >> release_notes.md
+          echo "**Release Type:** $RELEASE_TYPE" >> release_notes.md
+
       - name: Create Release
         uses: softprops/action-gh-release@v2
         with:
-          name: "EmbedCast ${{ github.ref_name }}"
+          name: "EmbedCast v${{ needs.calculate-version.outputs.version }}"
+          tag_name: "v${{ needs.calculate-version.outputs.version }}"
           draft: false
           prerelease: false
-          body: |
-            <p align="center">
-              <img src="https://raw.githubusercontent.com/MoriNo23/embedCast/main/assets/logo.png" alt="EmbedCast Logo" width="150">
-            </p>
-
-            # 🎬 EmbedCast ${{ github.ref_name }}
-
-            **Video casting from Linux/Phone to Android TV with full remote control via WebSocket**
-
-            ---
-
-            ## 📦 Downloads
-
-            ### Android TV
-            | App | File | Description |
-            |-----|------|-------------|
-            | TV App | `EmbedCast-${{ github.ref_name }}-android-tv.apk` | Main app for Android TV |
-
-            ### Mobile Remote
-            | App | File | Description |
-            |-----|------|-------------|
-            | Remote | `EmbedCast-${{ github.ref_name }}-android-remote.apk` | Control from your phone |
-
-            ### Linux Host Tools
-            | App | File | Description |
-            |-----|------|-------------|
-            | CLI Tool | `EmbedCast-${{ github.ref_name }}-cli-tool.zip` | Command-line interface |
-            | Web GUI | `EmbedCast-${{ github.ref_name }}-web-gui.zip` | Browser-based control |
-
-            ---
-
-            ## 🚀 Quick Start
-
-            ### 1. Install on Android TV
-            1. Download `EmbedCast-${{ github.ref_name }}-android-tv.apk`
-            2. Transfer to your Android TV
-            3. Install and launch (WebSocket server starts on port 8080)
-
-            ### 2. Control from Phone
-            1. Download `EmbedCast-${{ github.ref_name }}-android-remote.apk`
-            2. Install on your Android phone
-            3. Enter TV IP address and connect
-
-            ### 3. Or use Linux Host Tools
-            ```bash
-            # CLI Tool
-            unzip EmbedCast-${{ github.ref_name }}-cli-tool.zip
-            cd cli-tool
-            ./cli-tool load "https://example.com/video.mp4"
-
-            # Web GUI
-            unzip EmbedCast-${{ github.ref_name }}-web-gui.zip
-            cd web-gui
-            ./web-gui
-            # Open http://localhost:3000 in browser
-            ```
-
-            ---
-
-            ## ✨ Features
-
-            - 🎥 Cast videos from Linux/Phone to Android TV
-            - 🎮 Full playback control via WebSocket
-            - 📱 Remote control from mobile app
-            - 📺 Leanback-optimized TV interface
-            - 🔄 Auto-reconnect on disconnect
-            - 💾 Resume playback from saved positions
-            - 📡 Real-time status synchronization
-
-            ---
-
-            ## 📡 WebSocket Protocol
-
-            ```json
-            {"action": "load", "url": "https://example.com/video.mp4"}
-            {"action": "play"}
-            {"action": "pause"}
-            {"action": "seek", "seconds": 120}
-            {"action": "stop"}
-            ```
-
-            ---
-
-            ## 🔗 Links
-
-            - [📖 Documentation](https://github.com/MoriNo23/embedCast#readme)
-            - [🐛 Report Issues](https://github.com/MoriNo23/embedCast/issues)
-            - [📡 WebSocket Protocol](https://github.com/MoriNo23/embedCast/blob/main/embedCast-tv/WEBSOCKET_PROTOCOL.md)
-            - [📜 Changelog](https://github.com/MoriNo23/embedCast/blob/main/CHANGELOG.md)
-
-            ---
-
-            ⭐ **Star this repo if you find it useful!**
+          body_path: release_notes.md
           files: |
             ./artifacts/**/*.apk
             ./artifacts/**/*.zip
