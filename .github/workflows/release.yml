@@ -281,7 +281,7 @@ jobs:
 
       - name: Decode Keystore
         run: |
-          echo "${{ secrets.KEYSTORE_BASE64 }}" | base64 -d > embedCast-tv/app/release.keystore
+          echo "${{ secrets.KEYSTORE_BASE64 }}" | base64 -d > embedCast-tv/release.keystore
 
       - name: Build Release APK
         working-directory: embedCast-tv
@@ -290,7 +290,12 @@ jobs:
           KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
           KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
           KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
-        run: ./gradlew assembleRelease --no-daemon
+        run: |
+          export KEYSTORE_PATH="$KEYSTORE_PATH"
+          export KEYSTORE_PASSWORD="$KEYSTORE_PASSWORD"
+          export KEY_ALIAS="$KEY_ALIAS"
+          export KEY_PASSWORD="$KEY_PASSWORD"
+          ./gradlew assembleRelease --no-daemon
 
       - name: Verify APK signature
         run: |
