@@ -383,8 +383,8 @@ jobs:
           path: EmbedCast-*.zip
 
   create-release:
-    needs: [calculate-version, build-android-tv, build-android-remote, build-host]
-    if: needs.calculate-version.outputs.should_release == 'true' && (needs.detect-changes.outputs.tv_changed == 'true' || needs.detect-changes.outputs.remote_changed == 'true' || needs.detect-changes.outputs.host_changed == 'true')
+    needs: [detect-changes, calculate-version]
+    if: needs.calculate-version.outputs.should_release == 'true'
     runs-on: ubuntu-latest
     permissions:
       contents: write
@@ -392,15 +392,31 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Download all artifacts
+      - name: Download TV APK artifact
         uses: actions/download-artifact@v4
+        if: needs.detect-changes.outputs.tv_changed == 'true'
         with:
+          name: embedCast-tv-apk
+          path: ./artifacts
+
+      - name: Download Remote APK artifact
+        uses: actions/download-artifact@v4
+        if: needs.detect-changes.outputs.remote_changed == 'true'
+        with:
+          name: embedCast-remote-apk
+          path: ./artifacts
+
+      - name: Download Host tools artifact
+        uses: actions/download-artifact@v4
+        if: needs.detect-changes.outputs.host_changed == 'true'
+        with:
+          name: embedCast-host-tools
           path: ./artifacts
 
       - name: List artifacts
         run: |
           echo "=== Artifacts ==="
-          find ./artifacts -type f | head -20
+          find ./artifacts -type f 2>/dev/null | head -20 || echo "No artifacts found"
 
       - name: Create Tag
         run: |
