@@ -281,12 +281,12 @@ jobs:
 
       - name: Decode Keystore
         run: |
-          echo "${{ secrets.KEYSTORE_BASE64 }}" | base64 -d > embedCast-tv/release.keystore
+          echo "${{ secrets.KEYSTORE_BASE64 }}" | base64 -d > embedCast-tv/app/release.keystore
 
       - name: Build Release APK
         working-directory: embedCast-tv
         env:
-          KEYSTORE_PATH: release.keystore
+          KEYSTORE_PATH: app/release.keystore
           KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
           KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
           KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
