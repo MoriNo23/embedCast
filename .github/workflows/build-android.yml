@@ -60,9 +60,23 @@ jobs:
         working-directory: embedCast-tv
         run: ./gradlew assembleDebug --no-daemon --stacktrace
 
+      - name: Decode Keystore
+        run: |
+          echo "${{ secrets.KEYSTORE_BASE64 }}" | base64 -d > embedCast-tv/app/release.keystore
+
       - name: Build Release APK
         working-directory: embedCast-tv
-        run: ./gradlew assembleRelease --no-daemon --stacktrace
+        env:
+          KEYSTORE_PATH: release.keystore
+          KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
+          KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
+        run: |
+          export KEYSTORE_PATH="$KEYSTORE_PATH"
+          export KEYSTORE_PASSWORD="$KEYSTORE_PASSWORD"
+          export KEY_ALIAS="$KEY_ALIAS"
+          export KEY_PASSWORD="$KEY_PASSWORD"
+          ./gradlew assembleRelease --no-daemon --stacktrace
 
       - name: Upload Debug APK
         uses: actions/upload-artifact@v4
