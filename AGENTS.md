@@ -17,7 +17,7 @@
 
 ```
 Linux Host ←→ WebSocket (8080) ←→ Android TV
-   CLI/Web GUI                       JWPlayer
+CLI/Web GUI              JWPlayer
 ```
 
 ## Critical Files
@@ -27,6 +27,82 @@ Linux Host ←→ WebSocket (8080) ←→ Android TV
 | `embedCast-tv/app/.../MainActivity.kt` | Core activity | Without approval |
 | `embedCast-tv/app/.../WebSocketManager.kt` | WebSocket server | - |
 | `embedCast-sdk/` | Local SDK | ❌ Never |
+
+## Build Commands
+
+### Android TV (embedCast-tv/)
+```bash
+cd embedCast-tv
+./gradlew assembleDebug          # Debug build
+./gradlew assembleRelease          # Release build
+./gradlew test                     # Run all tests
+./gradlew test --tests "WebSocketManagerTest"  # Single test class
+./gradlew test --tests "*Test"     # Run all test classes
+./gradlew installDebug             # Install on device
+./gradlew clean                    # Clean build
+```
+
+### Host Tools
+```bash
+# CLI Tool
+cd embedCast-host/cli-tool
+dotnet build --configuration Release
+dotnet run -- <command>
+
+# Web GUI
+cd embedCast-host/web-gui
+dotnet build --configuration Release
+dotnet run
+```
+
+## Code Style Guidelines
+
+### Kotlin (Android)
+- **Indentation:** 4 spaces
+- **Imports:** Group by package, no wildcards
+- **Naming:**
+  - Classes: `PascalCase` (e.g., `MainActivity`)
+  - Functions: `camelCase` (e.g., `startServer()`)
+  - Constants: `SCREAMING_SNAKE_CASE` in companion objects
+  - Private fields: `camelCase` with `private` modifier
+- **Error Handling:** Use specific exceptions, log with `Log.e(TAG, message, exception)`
+- **Null Safety:** Prefer `?.let` over `!!`, use `lateinit` for injected dependencies
+- **Functions:** Keep under 50 lines, single responsibility
+- **Classes:** Keep under 500 lines
+
+### C# (Host Tools)
+- **Indentation:** 4 spaces
+- **Naming:**
+  - Classes: `PascalCase`
+  - Methods: `PascalCase`
+  - Variables: `camelCase`
+  - Constants: `PascalCase`
+- **Error Handling:** Use try-catch with specific exception types
+- **Async:** Use `async/await` consistently, avoid `.Result`
+
+## Testing
+
+### Android Tests
+- **Framework:** JUnit 4 + Mockito
+- **Location:** `src/test/java/com/tvremote/control/`
+- **Naming:** `*Test.kt` (e.g., `WebSocketManagerTest.kt`)
+- **Run single test:** `./gradlew test --tests "WebSocketManagerTest"`
+- **Annotations:** `@RunWith(MockitoJUnitRunner::class)` for mock tests
+
+### Test Patterns
+```kotlin
+@RunWith(MockitoJUnitRunner::class)
+class WebSocketManagerTest {
+    @Mock
+    private lateinit var mockServer: TvWebSocketServer
+    
+    @Before
+    fun setup() { }
+    
+    @Test
+    fun `descriptive test name`() { }
+}
+```
 
 ## WebSocket Protocol
 
@@ -53,6 +129,7 @@ Linux Host ←→ WebSocket (8080) ←→ Android TV
 - Use `overrideActivityTransition()` for API 34+
 - Update docs when changing protocols
 - Test WebSocket compatibility after changes
+- Run tests before committing: `./gradlew test`
 
 ### ❌ DON'T
 - Modify `embedCast-sdk/`
@@ -60,6 +137,7 @@ Linux Host ←→ WebSocket (8080) ←→ Android TV
 - Add dependencies without approval
 - Break backward compatibility
 - Use deprecated Android APIs
+- Commit without running tests
 
 ## Naming Conventions
 
@@ -69,24 +147,16 @@ Linux Host ←→ WebSocket (8080) ←→ Android TV
 | Managers | `*Manager.kt` | `VideoPlayerManager.kt` |
 | Helpers | `*Helper.kt` | `LoggingHelper.kt` |
 | Layouts | `activity_*.xml` | `activity_splash.xml` |
+| Tests | `*Test.kt` | `WebSocketManagerTest.kt` |
 
-## Build Commands
+## Dependencies
 
-```bash
-# Android TV
-cd embedCast-tv
-./gradlew assembleDebug      # Debug build
-./gradlew assembleRelease   # Release build
-./gradlew test              # Run tests
-./gradlew installDebug       # Install on device
-
-# Host tools
-cd embedCast-host/cli-tool
-dotnet build --configuration Release
-
-cd embedCast-host/web-gui
-dotnet build --configuration Release
-```
+| Library | Version | Purpose |
+|---------|---------|---------|
+| Java-WebSocket | 1.5.4 | WebSocket server |
+| AndroidX Media | 1.7.0 | Media session |
+| JUnit | 4.13.2 | Testing |
+| Mockito | 5.5.0 | Mocking |
 
 ## Troubleshooting
 
@@ -115,16 +185,10 @@ Debug why videos don't resume after pause in VideoPlayerManager
 
 # Add new feature
 Implement quality selection menu in MainActivity following Leanback guidelines
+
+# Run specific test
+Run the WebSocketManagerTest to verify the fix
 ```
-
-## Dependencies
-
-| Library | Version | Purpose |
-|---------|---------|---------|
-| Java-WebSocket | 1.5.4 | WebSocket server |
-| AndroidX Media | 1.7.0 | Media session |
-| JUnit | 4.13.2 | Testing |
-| Mockito | 5.5.0 | Mocking |
 
 ## Update This File When
 
@@ -132,3 +196,4 @@ Implement quality selection menu in MainActivity following Leanback guidelines
 - Changing WebSocket protocol
 - Modifying project structure
 - Adding new build steps
+- Changing test framework

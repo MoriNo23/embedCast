@@ -23,76 +23,67 @@
             box-sizing: border-box;
         }
 
+        html, body {
+            height: 100vh;
+            overflow: hidden;
+        }
+
         body {
             background: var(--bg-dark);
             color: var(--text-primary);
             font-family: 'Segoe UI', -apple-system, BlinkMacSystemFont, sans-serif;
-            min-height: 100vh;
             display: flex;
             flex-direction: column;
-            align-items: center;
-            padding: 20px;
+            padding: 10px;
         }
 
         .header {
             display: flex;
             align-items: center;
-            gap: 15px;
-            margin-bottom: 20px;
+            justify-content: center;
+            gap: 10px;
+            margin-bottom: 8px;
+            flex-shrink: 0;
         }
 
         .logo {
-            width: 60px;
-            height: 60px;
+            width: 36px;
+            height: 36px;
             background: var(--bg-card);
-            border-radius: 50%;
+            border-radius: 8px;
             display: flex;
             align-items: center;
             justify-content: center;
-            box-shadow: 0 4px 20px rgba(0,0,0,0.4);
             position: relative;
-            overflow: hidden;
-        }
-
-        .logo::before {
-            content: '';
-            position: absolute;
-            width: 100%;
-            height: 100%;
-            background: linear-gradient(135deg, var(--bg-card) 0%, var(--bg-elevated) 100%);
         }
 
         .logo-e {
-            position: relative;
-            z-index: 1;
-            font-size: 32px;
+            font-size: 20px;
             font-weight: bold;
             color: var(--grey-light);
-            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
         }
 
         .logo-accent {
             position: absolute;
-            width: 8px;
-            height: 8px;
+            width: 6px;
+            height: 6px;
             background: var(--accent-mint);
-            border-radius: 2px;
-            right: 12px;
-            top: 50%;
-            transform: translateY(-50%);
-            box-shadow: 0 0 10px var(--accent-mint), 0 0 20px var(--accent-mint-dim);
+            border-radius: 50%;
+            right: 4px;
+            top: 4px;
+            box-shadow: 0 0 6px var(--accent-mint);
             animation: pulse 2s ease-in-out infinite;
         }
 
         @keyframes pulse {
-            0%, 100% { opacity: 1; box-shadow: 0 0 10px var(--accent-mint), 0 0 20px var(--accent-mint-dim); }
-            50% { opacity: 0.7; box-shadow: 0 0 5px var(--accent-mint), 0 0 10px var(--accent-mint-dim); }
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
         }
 
         .title {
-            font-size: 28px;
+            font-size: 20px;
             font-weight: 300;
-            letter-spacing: 3px;
+            letter-spacing: 2px;
         }
 
         .title span {
@@ -103,108 +94,97 @@
         .ip-banner {
             background: var(--bg-card);
             border: 1px solid var(--bg-elevated);
-            border-radius: 12px;
-            padding: 12px 24px;
-            margin-bottom: 30px;
+            border-radius: 6px;
+            padding: 6px 12px;
+            margin-bottom: 10px;
             display: flex;
             align-items: center;
-            gap: 15px;
-            box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+            justify-content: center;
+            gap: 8px;
+            flex-shrink: 0;
         }
 
         .ip-label {
             color: var(--text-secondary);
-            font-size: 14px;
+            font-size: 12px;
         }
 
         .ip-value {
             font-family: 'Courier New', monospace;
-            font-size: 16px;
+            font-size: 13px;
             color: var(--accent-mint);
             background: var(--bg-elevated);
-            padding: 6px 12px;
-            border-radius: 6px;
+            padding: 3px 8px;
+            border-radius: 4px;
         }
 
         .main-container {
-            display: grid;
-            grid-template-columns: auto 1fr;
-            gap: 40px;
-            max-width: 1200px;
-            width: 100%;
+            display: flex;
+            gap: 15px;
+            flex: 1;
+            min-height: 0;
+            justify-content: center;
+            align-items: flex-start;
         }
 
         .remote-section {
             display: flex;
             flex-direction: column;
             align-items: center;
+            flex-shrink: 0;
         }
 
         .remote-body {
-            width: 180px;
+            width: 140px;
             background: linear-gradient(180deg, var(--bg-elevated) 0%, var(--bg-card) 100%);
-            border-radius: 40px;
-            padding: 20px 15px;
-            box-shadow: 0 20px 50px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.05);
+            border-radius: 24px;
+            padding: 12px 10px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.4), inset 0 1px 0 rgba(255,255,255,0.05);
             display: flex;
             flex-direction: column;
             align-items: center;
-            gap: 12px;
+            gap: 8px;
         }
 
         .remote-row {
             display: flex;
             justify-content: center;
-            gap: 15px;
+            gap: 10px;
             width: 100%;
         }
 
         .btn-circle {
-            width: 36px;
-            height: 36px;
+            width: 28px;
+            height: 28px;
             border-radius: 50%;
             background: var(--bg-card);
-            border: 2px solid var(--grey-block);
+            border: 1px solid var(--grey-block);
             color: var(--text-secondary);
             cursor: pointer;
-            transition: all 0.2s ease;
             display: flex;
             align-items: center;
             justify-content: center;
         }
 
-        .btn-circle:hover {
-            border-color: var(--accent-mint);
-            color: var(--accent-mint);
-        }
-
         .btn-circle.red { border-color: #ef4444; color: #ef4444; }
-        .btn-circle.red:hover { background: rgba(239, 68, 68, 0.2); }
         .btn-circle.blue { border-color: #3b82f6; color: #3b82f6; }
-        .btn-circle.blue:hover { background: rgba(59, 130, 246, 0.2); }
 
         .number-pad {
             display: grid;
             grid-template-columns: repeat(3, 1fr);
-            gap: 6px;
+            gap: 4px;
             width: 100%;
         }
 
         .btn-number {
-            height: 28px;
+            height: 22px;
             background: var(--bg-card);
             border: 1px solid var(--grey-block);
-            border-radius: 6px;
+            border-radius: 4px;
             color: var(--text-secondary);
-            font-size: 12px;
+            font-size: 10px;
             font-weight: 600;
             cursor: pointer;
-            transition: all 0.2s ease;
-        }
-
-        .btn-number:hover {
-            border-color: var(--accent-mint);
-            color: var(--accent-mint);
         }
 
         .btn-number.info {
@@ -214,93 +194,81 @@
         }
 
         .dpad-container {
-            width: 100px;
-            height: 100px;
+            width: 70px;
+            height: 70px;
             background: var(--bg-card);
             border-radius: 50%;
             position: relative;
             display: flex;
             align-items: center;
             justify-content: center;
-            box-shadow: inset 0 4px 10px rgba(0,0,0,0.4);
-            margin: 10px 0;
+            box-shadow: inset 0 2px 8px rgba(0,0,0,0.4);
         }
 
         .dpad-btn {
             position: absolute;
-            width: 30px;
-            height: 30px;
+            width: 22px;
+            height: 22px;
             background: transparent;
             border: none;
             color: var(--grey-light);
-            cursor: pointer;
             display: flex;
             align-items: center;
             justify-content: center;
-            transition: color 0.2s ease;
         }
 
-        .dpad-btn:hover { color: var(--accent-mint); }
-        .dpad-up { top: 5px; }
-        .dpad-down { bottom: 5px; }
-        .dpad-left { left: 5px; }
-        .dpad-right { right: 5px; }
+        .dpad-up { top: 4px; }
+        .dpad-down { bottom: 4px; }
+        .dpad-left { left: 4px; }
+        .dpad-right { right: 4px; }
 
         .dpad-ok {
-            width: 45px;
-            height: 45px;
+            width: 32px;
+            height: 32px;
             background: var(--bg-elevated);
-            border: 2px solid var(--grey-block);
+            border: 1px solid var(--grey-block);
             border-radius: 50%;
             color: var(--text-primary);
             font-weight: 600;
-            font-size: 12px;
+            font-size: 9px;
             cursor: pointer;
-            transition: all 0.2s ease;
-        }
-
-        .dpad-ok:hover {
-            border-color: var(--accent-mint);
-            color: var(--accent-mint);
         }
 
         .color-buttons {
             display: grid;
             grid-template-columns: repeat(4, 1fr);
-            gap: 8px;
+            gap: 4px;
             width: 100%;
         }
 
         .btn-color {
-            height: 12px;
-            border-radius: 6px;
+            height: 8px;
+            border-radius: 4px;
             border: none;
-            cursor: pointer;
-            transition: transform 0.2s ease;
         }
 
-        .btn-color:hover { transform: scaleY(1.2); }
         .btn-red { background: #ef4444; }
         .btn-green { background: #22c55e; }
         .btn-yellow { background: #eab308; }
         .btn-blue { background: #3b82f6; }
 
         .remote-logo {
-            font-size: 10px;
-            letter-spacing: 3px;
+            font-size: 8px;
+            letter-spacing: 2px;
             color: var(--grey-block);
-            margin-top: 10px;
+            margin-top: 4px;
         }
 
         .legend-section {
             background: var(--bg-card);
-            border-radius: 20px;
-            padding: 30px;
-            box-shadow: 0 10px 40px rgba(0,0,0,0.3);
+            border-radius: 12px;
+            padding: 15px;
+            overflow-y: auto;
+            max-height: calc(100vh - 100px);
         }
 
         .legend-category {
-            margin-bottom: 25px;
+            margin-bottom: 15px;
         }
 
         .legend-category:last-child {
@@ -309,34 +277,35 @@
 
         .category-title {
             color: var(--accent-mint);
-            font-size: 16px;
+            font-size: 13px;
             font-weight: 600;
-            margin-bottom: 15px;
-            padding-bottom: 10px;
+            margin-bottom: 10px;
+            padding-bottom: 6px;
             border-bottom: 1px solid var(--bg-elevated);
             display: flex;
             align-items: center;
-            gap: 10px;
+            gap: 6px;
         }
 
         .legend-item {
             display: flex;
             align-items: center;
-            margin-bottom: 12px;
-            font-size: 14px;
+            margin-bottom: 8px;
+            font-size: 12px;
         }
 
         .key-icon {
             background: var(--bg-elevated);
-            padding: 6px 12px;
-            border-radius: 6px;
+            padding: 3px 8px;
+            border-radius: 4px;
             font-family: monospace;
             font-weight: bold;
-            margin-right: 15px;
-            min-width: 50px;
+            margin-right: 10px;
+            min-width: 40px;
             text-align: center;
             color: var(--grey-light);
             border: 1px solid var(--grey-block);
+            font-size: 10px;
         }
 
         .key-icon.accent {
@@ -353,17 +322,19 @@
 
         .key-desc {
             color: var(--text-secondary);
-            line-height: 1.4;
+            line-height: 1.3;
         }
 
-        @media (max-width: 900px) {
+        @media (max-width: 768px) {
             .main-container {
-                grid-template-columns: 1fr;
-                gap: 30px;
+                flex-direction: column;
+                align-items: center;
             }
             
-            .remote-section {
-                order: -1;
+            .legend-section {
+                max-height: 200px;
+                width: 100%;
+                max-width: 400px;
             }
         }
     </style>
@@ -391,16 +362,18 @@
         <div class="remote-section">
             <div class="remote-body">
                 <div class="remote-row">
-                    <button type="button" class="btn-circle red" id="btn-red">
-                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" width="16" height="16">
-                            <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/>
-                        </svg>
-                    </button>
-                    <button type="button" class="btn-circle blue">
-                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" width="16" height="16">
-                            <path d="M12 14c1.66 0 3-1.34 3-3V5c0-1.66-1.34-3-3-3S9 3.34 9 5v6c0 1.66 1.34 3 3 3z"/>
-                        </svg>
-                    </button>
+<button type="button" class="btn-circle red" title="Check">
+                    <svg viewBox="0 0 24 24" fill="currentColor" width="12" height="12">
+                        <title>Check</title>
+                        <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/>
+                    </svg>
+                </button>
+                <button type="button" class="btn-circle blue" title="Mic">
+                    <svg viewBox="0 0 24 24" fill="currentColor" width="12" height="12">
+                        <title>Mic</title>
+                        <path d="M12 14c1.66 0 3-1.34 3-3V5c0-1.66-1.34-3-3-3S9 3.34 9 5v6c0 1.66 1.34 3 3 3z"/>
+                    </svg>
+                </button>
                 </div>
 
                 <div class="number-pad">
@@ -413,72 +386,81 @@
                     <button type="button" class="btn-number">7</button>
                     <button type="button" class="btn-number">8</button>
                     <button type="button" class="btn-number">9</button>
-                    <button type="button" class="btn-number info" id="btn-info">INFO</button>
+                    <button type="button" class="btn-number info">INFO</button>
                     <button type="button" class="btn-number">0</button>
-                    <button type="button" class="btn-number">
-                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" width="14" height="14">
-                            <path d="M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20v-2z"/>
-                        </svg>
-                    </button>
+<button type="button" class="btn-number" title="Back">
+                    <svg viewBox="0 0 24 24" fill="currentColor" width="10" height="10">
+                        <title>Back</title>
+                        <path d="M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20v-2z"/>
+                    </svg>
+                </button>
                 </div>
 
                 <div class="dpad-container">
-                    <button type="button" class="dpad-btn dpad-up" id="btn-up">
-                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" width="20" height="20">
-                            <path d="M7.41 15.41L12 10.83l4.59 4.58L18 14l-6-6-6 6z"/>
-                        </svg>
-                    </button>
-                    <button type="button" class="dpad-btn dpad-down" id="btn-down">
-                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" width="20" height="20">
-                            <path d="M7.41 8.59L12 13.17l4.59-4.58L18 10l-6 6-6-6z"/>
-                        </svg>
-                    </button>
-                    <button type="button" class="dpad-btn dpad-left">
-                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" width="20" height="20">
-                            <path d="M15.41 7.41L14 6l-6 6 6 6 1.41-1.41L10.83 12z"/>
-                        </svg>
-                    </button>
-                    <button type="button" class="dpad-btn dpad-right">
-                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" width="20" height="20">
-                            <path d="M10 6L8.59 7.41 13.17 12l-4.58 4.59L10 18l6-6z"/>
-                        </svg>
-                    </button>
+<button type="button" class="dpad-btn dpad-up" title="Up">
+                    <svg viewBox="0 0 24 24" fill="currentColor" width="16" height="16">
+                        <title>Up</title>
+                        <path d="M7.41 15.41L12 10.83l4.59 4.58L18 14l-6-6-6 6z"/>
+                    </svg>
+                </button>
+                <button type="button" class="dpad-btn dpad-down" title="Down">
+                    <svg viewBox="0 0 24 24" fill="currentColor" width="16" height="16">
+                        <title>Down</title>
+                        <path d="M7.41 8.59L12 13.17l4.59-4.58L18 10l-6 6-6-6z"/>
+                    </svg>
+                </button>
+                <button type="button" class="dpad-btn dpad-left" title="Left">
+                    <svg viewBox="0 0 24 24" fill="currentColor" width="16" height="16">
+                        <title>Left</title>
+                        <path d="M15.41 7.41L14 6l-6 6 6 6 1.41-1.41L10.83 12z"/>
+                    </svg>
+                </button>
+                <button type="button" class="dpad-btn dpad-right" title="Right">
+                    <svg viewBox="0 0 24 24" fill="currentColor" width="16" height="16">
+                        <title>Right</title>
+                        <path d="M10 6L8.59 7.41 13.17 12l-4.58 4.59L10 18l6-6z"/>
+                    </svg>
+                </button>
                     <button type="button" class="dpad-ok">OK</button>
                 </div>
 
-                <div class="remote-row">
-                    <button type="button" class="btn-circle">
-                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" width="16" height="16">
-                            <path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z"/>
-                        </svg>
-                    </button>
-                    <button type="button" class="btn-circle">
-                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" width="16" height="16">
-                            <path d="M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20v-2z"/>
-                        </svg>
-                    </button>
-                    <button type="button" class="btn-circle">
-                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" width="16" height="16">
-                            <path d="M19.14 12.94c.04-.31.06-.63.06-.94 0-.31-.02-.63-.06-.94l2.03-1.58c.18-.14.23-.41.12-.61l-1.92-3.32c-.12-.22-.37-.29-.59-.22l-2.39.96c-.5-.38-1.03-.7-1.62-.94l-.36-2.54c-.04-.24-.24-.41-.48-.41h-3.84c-.24 0-.43.17-.47.41l-.36 2.54c-.59.24-1.13.57-1.62.94l-2.39-.96c-.22-.08-.47 0-.59.22L2.74 8.87c-.12.21-.08.47.12.61l2.03 1.58c-.04.31-.06.63-.06.94s.02.63.06.94l-2.03 1.58c-.18.14-.23.41-.12.61l1.92 3.32c.12.22.37.29.59.22l2.39-.96c.5.38 1.03.7 1.62.94l.36 2.54c.05.24.24.41.48.41h3.84c.24 0 .44-.17.47-.41l.36-2.54c.59-.24 1.13-.56 1.62-.94l2.39.96c.22.08.47 0 .59-.22l1.92-3.32c.12-.22.07-.47-.12-.61l-2.01-1.58zM12 15.6c-1.98 0-3.6-1.62-3.6-3.6s1.62-3.6 3.6-3.6 3.6 1.62 3.6 3.6-1.62 3.6-3.6 3.6z"/>
-                        </svg>
-                    </button>
-                </div>
+<div class="remote-row">
+                <button type="button" class="btn-circle" title="Home">
+                    <svg viewBox="0 0 24 24" fill="currentColor" width="12" height="12">
+                        <title>Home</title>
+                        <path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z"/>
+                    </svg>
+                </button>
+                <button type="button" class="btn-circle" title="Back">
+                    <svg viewBox="0 0 24 24" fill="currentColor" width="12" height="12">
+                        <title>Back</title>
+                        <path d="M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20v-2z"/>
+                    </svg>
+                </button>
+                <button type="button" class="btn-circle" title="Settings">
+                    <svg viewBox="0 0 24 24" fill="currentColor" width="12" height="12">
+                        <title>Settings</title>
+                        <path d="M19.14 12.94c.04-.31.06-.63.06-.94 0-.31-.02-.63-.06-.94l2.03-1.58c.18-.14.23-.41.12-.61l-1.92-3.32c-.12-.22-.37-.29-.59-.22l-2.39.96c-.5-.38-1.03-.7-1.62-.94l-.36-2.54c-.04-.24-.24-.41-.48-.41h-3.84c-.24 0-.43.17-.47.41l-.36 2.54c-.59.24-1.13.57-1.62.94l-2.39-.96c-.22-.08-.47 0-.59.22L2.74 8.87c-.12.21-.08.47.12.61l2.03 1.58c-.04.31-.06.63-.06.94s.02.63.06.94l-2.03 1.58c-.18.14-.23.41-.12.61l1.92 3.32c.12.22.37.29.59.22l2.39-.96c.5.38 1.03.7 1.62.94l.36 2.54c.05.24.24.41.48.41h3.84c.24 0 .44-.17.47-.41l.36-2.54c.59-.24 1.13-.56 1.62-.94l2.39.96c.22.08.47 0 .59-.22l1.92-3.32c.12-.22.07-.47-.12-.61l-2.01-1.58zM12 15.6c-1.98 0-3.6-1.62-3.6-3.6s1.62-3.6 3.6-3.6 3.6 1.62 3.6 3.6-1.62 3.6-3.6 3.6z"/>
+                    </svg>
+                </button>
+            </div>
 
                 <div class="color-buttons">
-                    <button type="button" class="btn-color btn-red" id="btn-red2"></button>
+                    <button type="button" class="btn-color btn-red"></button>
                     <button type="button" class="btn-color btn-green"></button>
                     <button type="button" class="btn-color btn-yellow"></button>
                     <button type="button" class="btn-color btn-blue"></button>
                 </div>
 
-                <div class="number-pad" style="margin-top: 10px;">
-                    <button type="button" class="btn-number" id="btn-sub">SUB</button>
+                <div class="number-pad" style="margin-top: 6px;">
+                    <button type="button" class="btn-number">SUB</button>
                     <button type="button" class="btn-number">AD</button>
-                    <button type="button" class="btn-number" style="color: #ef4444;">
-                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" width="12" height="12">
-                            <circle cx="12" cy="12" r="8"/>
-                        </svg>
-                    </button>
+<button type="button" class="btn-number" style="color: #ef4444;" title="Record">
+                    <svg viewBox="0 0 24 24" fill="currentColor" width="10" height="10">
+                        <title>Record</title>
+                        <circle cx="12" cy="12" r="8"/>
+                    </svg>
+                </button>
                 </div>
 
                 <div class="remote-logo">EMBEDCAST</div>
@@ -488,51 +470,53 @@
         <div class="legend-section">
             <div class="legend-category">
                 <div class="category-title">
-                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" width="20" height="20">
+                    <svg viewBox="0 0 24 24" fill="currentColor" width="16" height="16">
+                        <title>Navigation</title>
                         <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/>
                     </svg>
                     Navegación y Control
                 </div>
                 <div class="legend-item">
-                    <span class="key-icon">▲ / ▼</span>
-                    <span class="key-desc">Navegar menús del reproductor (Calidad, Subtítulos)</span>
+                    <span class="key-icon">▲▼</span>
+                    <span class="key-desc">Navegar menús (Calidad, Subtítulos)</span>
                 </div>
                 <div class="legend-item">
-                    <span class="key-icon">◄ / ►</span>
-                    <span class="key-desc">Adelantar / Retroceder 10 segundos</span>
+                    <span class="key-icon">◄►</span>
+                    <span class="key-desc">Adelantar / Retroceder 10s</span>
                 </div>
                 <div class="legend-item">
                     <span class="key-icon accent">OK</span>
-                    <span class="key-desc">Reproducir / Pausar video</span>
+                    <span class="key-desc">Reproducir / Pausar</span>
                 </div>
                 <div class="legend-item">
                     <span class="key-icon">0-9</span>
-                    <span class="key-desc">Salto rápido al porcentaje (1=10%, 5=50%)</span>
+                    <span class="key-desc">Salto rápido (1=10%, 5=50%)</span>
                 </div>
             </div>
 
             <div class="legend-category">
                 <div class="category-title">
-                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" width="20" height="20">
+                    <svg viewBox="0 0 24 24" fill="currentColor" width="16" height="16">
+                        <title>Settings</title>
                         <path d="M19.14 12.94c.04-.31.06-.63.06-.94 0-.31-.02-.63-.06-.94l2.03-1.58c.18-.14.23-.41.12-.61l-1.92-3.32c-.12-.22-.37-.29-.59-.22l-2.39.96c-.5-.38-1.03-.7-1.62-.94l-.36-2.54c-.04-.24-.24-.41-.48-.41h-3.84c-.24 0-.43.17-.47.41l-.36 2.54c-.59.24-1.13.57-1.62.94l-2.39-.96c-.22-.08-.47 0-.59.22L2.74 8.87c-.12.21-.08.47.12.61l2.03 1.58c-.04.31-.06.63-.06.94s.02.63.06.94l-2.03 1.58c-.18.14-.23.41-.12.61l1.92 3.32c.12.22.37.29.59.22l2.39-.96c.5.38 1.03.7 1.62.94l.36 2.54c.05.24.24.41.48.41h3.84c.24 0 .44-.17.47-.41l.36-2.54c.59-.24 1.13-.56 1.62-.94l2.39.96c.22.08.47 0 .59-.22l1.92-3.32c.12-.22.07-.47-.12-.61l-2.01-1.58zM12 15.6c-1.98 0-3.6-1.62-3.6-3.6s1.62-3.6 3.6-3.6 3.6 1.62 3.6 3.6-1.62 3.6-3.6 3.6z"/>
                     </svg>
                     Funciones del Sistema
                 </div>
                 <div class="legend-item">
                     <span class="key-icon accent">INFO</span>
-                    <span class="key-desc">Mostrar / Ocultar esta guía</span>
+                    <span class="key-desc">Mostrar / Ocultar guía</span>
                 </div>
                 <div class="legend-item">
                     <span class="key-icon">SUB</span>
                     <span class="key-desc">Activar / Desactivar subtítulos</span>
                 </div>
                 <div class="legend-item">
-                    <span class="key-icon red">● Rojo</span>
+                    <span class="key-icon red">Rojo</span>
                     <span class="key-desc">Forzar recarga del reproductor</span>
                 </div>
                 <div class="legend-item">
-                    <span class="key-icon">Atrás</span>
-                    <span class="key-desc">Detener video y volver al menú</span>
+                    <span class="key-icon">◄</span>
+                    <span class="key-desc">Detener y volver al menú</span>
                 </div>
             </div>
         </div>

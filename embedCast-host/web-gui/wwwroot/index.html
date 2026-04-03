@@ -23,66 +23,76 @@
             box-sizing: border-box;
         }
 
+        html, body {
+            height: 100vh;
+            overflow: hidden;
+        }
+
         body {
-            font-family: 'Segoe UI', -apple-system, BlinkMacSystemFont, sans-serif;
+            font-family: 'Ubuntu', 'Segoe UI', -apple-system, BlinkMacSystemFont, sans-serif;
             background: var(--bg-dark);
             color: var(--text-primary);
-            min-height: 100vh;
-            padding: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 10px;
         }
 
         .container {
-            max-width: 800px;
-            margin: 0 auto;
+            width: 100%;
+            max-width: 900px;
+            height: 100%;
+            max-height: 95vh;
             background: var(--bg-card);
-            padding: 30px;
-            border-radius: 16px;
-            box-shadow: 0 20px 50px rgba(0,0,0,0.4);
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
         }
 
         .header {
             display: flex;
             align-items: center;
-            gap: 15px;
-            margin-bottom: 25px;
-            padding-bottom: 20px;
+            gap: 12px;
+            padding-bottom: 12px;
             border-bottom: 1px solid var(--bg-elevated);
+            flex-shrink: 0;
         }
 
         .logo {
-            width: 50px;
-            height: 50px;
+            width: 40px;
+            height: 40px;
             background: var(--bg-elevated);
-            border-radius: 50%;
+            border-radius: 8px;
             display: flex;
             align-items: center;
             justify-content: center;
             position: relative;
-            box-shadow: 0 4px 15px rgba(0,0,0,0.3);
         }
 
         .logo-e {
-            font-size: 28px;
+            font-size: 22px;
             font-weight: bold;
             color: var(--grey-light);
         }
 
         .logo-accent {
             position: absolute;
-            width: 6px;
-            height: 6px;
+            width: 8px;
+            height: 8px;
             background: var(--accent-mint);
-            border-radius: 2px;
-            right: 10px;
-            top: 50%;
-            transform: translateY(-50%);
-            box-shadow: 0 0 8px var(--accent-mint);
+            border-radius: 50%;
+            right: 6px;
+            top: 6px;
+            box-shadow: 0 0 6px var(--accent-mint);
             animation: pulse 2s ease-in-out infinite;
         }
 
         @keyframes pulse {
-            0%, 100% { opacity: 1; box-shadow: 0 0 8px var(--accent-mint); }
-            50% { opacity: 0.6; box-shadow: 0 0 4px var(--accent-mint-dim); }
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
         }
 
         .title {
@@ -91,9 +101,9 @@
 
         .title h2 {
             color: var(--text-primary);
-            font-weight: 300;
-            font-size: 24px;
-            letter-spacing: 2px;
+            font-weight: 400;
+            font-size: 20px;
+            letter-spacing: 1px;
             margin: 0;
         }
 
@@ -104,48 +114,71 @@
 
         .status-badge {
             display: inline-block;
-            padding: 6px 12px;
-            border-radius: 20px;
-            font-size: 11px;
+            padding: 4px 10px;
+            border-radius: 4px;
+            font-size: 10px;
             text-transform: uppercase;
-            letter-spacing: 1px;
+            letter-spacing: 0.5px;
             font-weight: 600;
         }
 
         .online {
-            background: rgba(94, 234, 212, 0.2);
+            background: rgba(94, 234, 212, 0.15);
             color: var(--accent-mint);
             border: 1px solid var(--accent-mint);
         }
 
         .offline {
-            background: rgba(239, 68, 68, 0.2);
+            background: rgba(239, 68, 68, 0.15);
             color: #ef4444;
             border: 1px solid #ef4444;
         }
 
+        .main-content {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px;
+            flex: 1;
+            min-height: 0;
+        }
+
+        .left-panel {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .right-panel {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
         .section {
-            margin-bottom: 25px;
+            background: var(--bg-dark);
+            padding: 12px;
+            border-radius: 6px;
+            border: 1px solid var(--bg-elevated);
         }
 
         .section label {
             display: block;
-            margin-bottom: 10px;
-            font-size: 13px;
+            margin-bottom: 6px;
+            font-size: 11px;
             color: var(--text-secondary);
             text-transform: uppercase;
-            letter-spacing: 1px;
+            letter-spacing: 0.5px;
+            font-weight: 500;
         }
 
         input {
             width: 100%;
-            padding: 14px 16px;
-            margin: 5px 0;
+            padding: 8px 10px;
             background: var(--bg-elevated);
             color: var(--text-primary);
             border: 1px solid var(--grey-block);
-            border-radius: 8px;
-            font-size: 14px;
+            border-radius: 4px;
+            font-size: 13px;
             transition: border-color 0.2s ease;
         }
 
@@ -160,29 +193,29 @@
 
         .btn-row {
             display: flex;
-            gap: 10px;
-            margin-top: 10px;
+            gap: 8px;
+            margin-top: 8px;
         }
 
         button {
-            padding: 14px 20px;
+            padding: 8px 14px;
             background: var(--accent-mint);
             color: var(--bg-dark);
             border: none;
-            border-radius: 8px;
+            border-radius: 4px;
             font-weight: 600;
-            font-size: 14px;
+            font-size: 12px;
             cursor: pointer;
             transition: all 0.2s ease;
+            white-space: nowrap;
         }
 
         button:hover {
             background: #4dd8c2;
-            transform: translateY(-1px);
         }
 
         button.secondary {
-            background: var(--bg-elevated);
+            background: transparent;
             color: var(--text-secondary);
             border: 1px solid var(--grey-block);
         }
@@ -194,30 +227,33 @@
 
         .player-hud {
             background: var(--bg-dark);
-            padding: 20px;
-            border-radius: 12px;
-            margin-top: 20px;
+            padding: 12px;
+            border-radius: 6px;
             border: 1px solid var(--bg-elevated);
+            flex: 1;
+            display: flex;
+            flex-direction: column;
         }
 
         .time-info {
             display: flex;
             justify-content: space-between;
-            font-size: 12px;
+            font-size: 11px;
             color: var(--text-secondary);
-            margin-bottom: 10px;
+            margin-bottom: 6px;
         }
 
         .time-info #qualities {
             color: var(--grey-block);
+            font-size: 10px;
         }
 
         .progress-container {
             width: 100%;
             background: var(--bg-elevated);
-            height: 6px;
-            border-radius: 3px;
-            margin: 15px 0;
+            height: 4px;
+            border-radius: 2px;
+            margin: 8px 0;
             overflow: hidden;
         }
 
@@ -225,23 +261,24 @@
             background: var(--accent-mint);
             height: 100%;
             width: 0%;
-            border-radius: 3px;
+            border-radius: 2px;
             transition: width 0.3s ease;
-            box-shadow: 0 0 10px var(--accent-mint-dim);
         }
 
         .controls {
             display: grid;
             grid-template-columns: repeat(4, 1fr);
-            gap: 10px;
-            margin-top: 15px;
+            gap: 8px;
+            margin-top: auto;
+            padding-top: 12px;
         }
 
         .controls button {
             background: var(--bg-card);
             color: var(--text-secondary);
             border: 1px solid var(--grey-block);
-            font-size: 13px;
+            font-size: 11px;
+            padding: 10px 8px;
         }
 
         .controls button:hover {
@@ -265,25 +302,48 @@
         }
 
         #log {
-            margin-top: 20px;
-            padding: 15px;
             background: var(--bg-dark);
-            height: 150px;
-            overflow-y: auto;
-            font-family: 'Consolas', 'Monaco', monospace;
-            font-size: 12px;
-            border-radius: 8px;
+            padding: 10px;
+            border-radius: 6px;
             border: 1px solid var(--bg-elevated);
+            height: 100px;
+            overflow-y: auto;
+            font-family: 'Ubuntu Mono', 'Consolas', 'Monaco', monospace;
+            font-size: 10px;
+            line-height: 1.4;
         }
 
         #log div {
-            padding: 4px 0;
-            border-bottom: 1px solid rgba(255,255,255,0.03);
+            padding: 2px 0;
+            border-bottom: 1px solid rgba(255,255,255,0.02);
         }
 
         .success { color: var(--accent-mint); }
         .error { color: #ef4444; }
         .info { color: var(--text-secondary); }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .main-content {
+                grid-template-columns: 1fr;
+            }
+            
+            .container {
+                max-height: 100vh;
+                border-radius: 0;
+            }
+        }
+
+        @media (max-height: 700px) {
+            .container {
+                padding: 15px;
+                gap: 10px;
+            }
+            
+            #log {
+                height: 80px;
+            }
+        }
     </style>
 </head>
 <body>
@@ -299,41 +359,47 @@
             <span id="statusBadge" class="status-badge offline">Disconnected</span>
         </div>
 
-        <div class="section">
-            <label>TV Connection</label>
-            <div class="btn-row">
-                <input type="text" id="tvIp" placeholder="e.g. 10.42.0.224" style="flex: 2;">
-                <button type="button" onclick="connect()" style="flex: 1;">Connect</button>
+        <div class="main-content">
+            <div class="left-panel">
+                <div class="section">
+                    <label>TV Connection</label>
+                    <div class="btn-row">
+                        <input type="text" id="tvIp" placeholder="e.g. 10.42.0.224" style="flex: 2;">
+                        <button type="button" onclick="connect()" style="flex: 1;">Connect</button>
+                    </div>
+                </div>
+
+                <div class="section">
+                    <label>Video Stream URL</label>
+                    <input type="text" id="videoUrl" placeholder="Paste embed URL here...">
+                    <div class="btn-row">
+                        <button type="button" onclick="loadVideo()" style="flex: 3;">Cast to TV</button>
+                        <button type="button" onclick="sendAction('reload')" class="secondary" style="flex: 1;">Reload</button>
+                    </div>
+                </div>
+
+                <div id="log"></div>
+            </div>
+
+            <div class="right-panel">
+                <div class="player-hud">
+                    <div class="time-info">
+                        <span id="currentTime">00:00</span>
+                        <span id="qualities">No qualities detected</span>
+                        <span id="duration">00:00</span>
+                    </div>
+                    <div class="progress-container">
+                        <div id="progressBar"></div>
+                    </div>
+                    <div class="controls">
+                        <button type="button" onclick="sendAction('seek', {seconds: -10})">-10s</button>
+                        <button type="button" id="playPauseBtn" onclick="togglePlay()" class="primary">Play</button>
+                        <button type="button" onclick="sendAction('seek', {seconds: 10})">+10s</button>
+                        <button type="button" onclick="sendAction('stop')" class="stop">Stop</button>
+                    </div>
+                </div>
             </div>
         </div>
-
-        <div class="section">
-            <label>Video Stream URL</label>
-            <input type="text" id="videoUrl" placeholder="Paste embed URL here...">
-            <div class="btn-row">
-                <button type="button" onclick="loadVideo()" style="flex: 3;">Cast to TV</button>
-                <button type="button" onclick="sendAction('reload')" class="secondary" style="flex: 1;">Force Reload</button>
-            </div>
-        </div>
-
-        <div class="player-hud">
-            <div class="time-info">
-                <span id="currentTime">00:00</span>
-                <span id="qualities">No qualities detected</span>
-                <span id="duration">00:00</span>
-            </div>
-            <div class="progress-container">
-                <div id="progressBar"></div>
-            </div>
-            <div class="controls">
-                <button type="button" onclick="sendAction('seek', {seconds: -10})">-10s</button>
-                <button type="button" id="playPauseBtn" onclick="togglePlay()" class="primary">Play</button>
-                <button type="button" onclick="sendAction('seek', {seconds: 10})">+10s</button>
-                <button type="button" onclick="sendAction('stop')" class="stop">Stop</button>
-            </div>
-        </div>
-
-        <div id="log"></div>
     </div>
 
     <script>

@@ -95,3 +95,24 @@ embedCast-sdk/
 
 # Sisyphus project management (internal - do not commit)
 .sisyphus/
+
+# Docker build environment (local development only)
+docker/
+
+# Documentation reports (generated locally)
+docs/INSTALLATION_ISSUE_REPORT.md
+
+# Scripts (local development tools)
+scripts/
+
+# OpenCode session logs (private)
+docs/session-*.md
+
+# Sisyphus internal state files
+.sisyphus/boulder.json
+.sisyphus/drafts/
+.sisyphus/plans/
+
+# Development configuration files
+**/appsettings.Development.json
+**/appsettings.local.json
