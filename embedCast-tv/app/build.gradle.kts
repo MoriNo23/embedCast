@@ -11,8 +11,8 @@ android {
         applicationId = "com.embedcast.tv"
         minSdk = 24
         targetSdk = 34
-        versionCode = 10104
-        versionName = "1.1.4"
+        versionCode = 10200
+        versionName = "1.2.0"
     }
 
     signingConfigs {
